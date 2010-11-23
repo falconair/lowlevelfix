@@ -9,5 +9,10 @@ See various tests for examples on using this code.
 
 Contributions welcome.
 
+TODO:
+-Make sure netty handlers are sane (ignore FIX logic for now)
+-Document (javadocs)
+-Make sure existing logic works correctly (add more standard FIX test cases)
+-Add new functionality such as groups, crash proof resend logic, etc.
 
 shahbazc gmail com
