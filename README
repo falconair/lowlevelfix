@@ -1,0 +1,13 @@
+Low Level FIX
+=============
+
+This project aims to provide very low level modules which can be combined to produce a FIX protocol handler (server, client, router, etc.).
+
+Consider the current implementation, at best, late alpha quality.  There is almost no documentation, optimizations, etc.  This is little more than a code dump at this point.
+
+See various tests for examples on using this code.
+
+Contributions welcome.
+
+
+shahbazc gmail com
