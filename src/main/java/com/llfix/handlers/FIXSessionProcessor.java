@@ -80,8 +80,9 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
     	if(event instanceof MessageEvent){
 
+    		final Map<String,String> fix = (Map<String,String>) ((MessageEvent)event).getMessage();
+    		
     		if(loggedIn){
-        		final Map<String,String> fix = (Map<String,String>) ((MessageEvent)event).getMessage();
         		
         		outgoingMsgStore.add(fix);
         		
@@ -91,11 +92,15 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             		fix.put("49", targetCompID);
             		fix.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
 
-            		Channels.write(ctx, Channels.future(ctx.getChannel()), fix);        			
+            		Channels.write(ctx, Channels.future(ctx.getChannel()), fix);
         		}
     		}
     		else{
-    			//TODO send reject to previous handlers!
+    			if(fix.get("35").equals("A")){
+            		Channels.write(ctx, Channels.future(ctx.getChannel()), fix);    				
+    			}
+    			logger.error("Attempt to send a non-logon message, while not logged in: "+fix);
+    			//TODO: send exception to sender
     		}
     	}
     	else{

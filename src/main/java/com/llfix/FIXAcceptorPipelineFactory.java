@@ -1,15 +1,13 @@
 package com.llfix;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.ChannelUpstreamHandler;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.string.StringDecoder;
 import org.jboss.netty.handler.codec.string.StringEncoder;
-import org.jboss.netty.handler.logging.LoggingHandler;
 import org.jboss.netty.handler.timeout.IdleStateHandler;
 
 import com.llfix.handlers.FIXFrameDecoder;
@@ -19,12 +17,6 @@ import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.handlers.LogHandler;
 import com.llfix.util.FieldAndRequirement;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 
 public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
 
@@ -32,7 +24,6 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
     private final List<FieldAndRequirement> trailerFields;
 	private final ILogonManager logonManager;
 	private final Set<String> sessions = new HashSet<String>();
-	private static long execID = 1;
 
     public FIXAcceptorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
