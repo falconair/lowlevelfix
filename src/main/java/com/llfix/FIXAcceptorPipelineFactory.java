@@ -31,25 +31,22 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
     private final List<FieldAndRequirement> headerFields;
     private final List<FieldAndRequirement> trailerFields;
 	private final ILogonManager logonManager;
-	private final ChannelUpstreamHandler upstreamHandler;
 	private final Set<String> sessions = new HashSet<String>();
 	private static long execID = 1;
 
     public FIXAcceptorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
             final List<FieldAndRequirement> trailerFields){
-        this(headerFields,trailerFields,new DefaultLogonManager(), new SimpleChannelUpstreamHandler());
+        this(headerFields,trailerFields,new DefaultLogonManager());
     }
     
     public FIXAcceptorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
             final List<FieldAndRequirement> trailerFields,
-            final ILogonManager logonManager,
-            final ChannelUpstreamHandler upstreamHandler){
+            final ILogonManager logonManager){
         this.headerFields = headerFields;
         this.trailerFields = trailerFields;
         this.logonManager = logonManager;
-        this.upstreamHandler = upstreamHandler;
     }
     
     private static StringDecoder STRINGDECODER = new StringDecoder();

@@ -30,26 +30,16 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
 
     private final List<FieldAndRequirement> headerFields;
     private final List<FieldAndRequirement> trailerFields;
-	private final ILogonManager logonManager;
-	private final ChannelUpstreamHandler upstreamHandler;
 	private final Set<String> sessions = new HashSet<String>();
 	private static long execID = 1;
+	
+	private final static ILogonManager logOnManager = new DefaultLogonManager();
 
     public FIXInitiatorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
             final List<FieldAndRequirement> trailerFields){
-        this(headerFields,trailerFields,new DefaultLogonManager(), new SimpleChannelUpstreamHandler());
-    }
-    
-    public FIXInitiatorPipelineFactory(
-            final List<FieldAndRequirement> headerFields,
-            final List<FieldAndRequirement> trailerFields,
-            final ILogonManager logonManager,
-            final ChannelUpstreamHandler upstreamHandler){
         this.headerFields = headerFields;
         this.trailerFields = trailerFields;
-        this.logonManager = logonManager;
-        this.upstreamHandler = upstreamHandler;
     }
     
     private static StringDecoder STRINGDECODER = new StringDecoder();
@@ -66,7 +56,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
                 LOGHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
                 new FIXMessageDecoder(headerFields, trailerFields),
-                new FIXSessionProcessor(true,headerFields, trailerFields, logonManager, sessions)
+                new FIXSessionProcessor(true,headerFields, trailerFields,logOnManager , sessions)
                 );
         return pipe;
     }
