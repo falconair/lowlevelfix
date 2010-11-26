@@ -62,8 +62,9 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
                 STRINGENCODER,//Outgoing
                 isDebugOn ? LOGHANDLER : NOOPHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
-                new FIXMessageDecoder(headerFields, trailerFields),
-                new FIXSessionProcessor(false,headerFields, trailerFields, logonManager, sessions)
+                new FIXMessageDecoder(),
+                new FIXSessionProcessor(false,headerFields, trailerFields, logonManager, sessions),
+                upstreamHandler
                 );
         return pipe;
     }

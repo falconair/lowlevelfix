@@ -1,7 +1,5 @@
 package com.llfix.handlers;
 
-import com.llfix.util.FieldAndRequirement;
-
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,17 +19,6 @@ public class FIXMessageDecoder extends SimpleChannelHandler {
 
     final static Logger logger = LoggerFactory.getLogger(FIXMessageDecoder.class);
     final static char SOH_CHAR = '\001';
-
-    private final List<FieldAndRequirement> headerFields;
-    private final List<FieldAndRequirement> trailerFields;
-
-    public FIXMessageDecoder(
-            final List<FieldAndRequirement> headerFields,
-            final List<FieldAndRequirement> trailerFields){
-
-        this.headerFields = headerFields;
-        this.trailerFields = trailerFields;
-    }
 
     @Override
     public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {

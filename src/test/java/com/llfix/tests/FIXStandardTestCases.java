@@ -50,7 +50,7 @@ public class FIXStandardTestCases {
                 STRINGENCODER,//Outgoing
                 LOGHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
-                new FIXMessageDecoder(headerFields, trailerFields),
+                new FIXMessageDecoder(),
                 new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions));
 		
 		String logon = "8=FIX.4.29=6735=A34=149=CLIENT52=20101117-03:40:57.70556=SERVER98=0108=3010=147";
@@ -75,7 +75,7 @@ public class FIXStandardTestCases {
                 STRINGENCODER,//Outgoing
                 LOGHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
-                new FIXMessageDecoder(headerFields, trailerFields),
+                new FIXMessageDecoder(),
                 new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions));
 		
 		String logon = "8=FIX.4.29=5935=034=349=HTX_DC52=20080912-13:24:19.56356=MPNLOMS4NJ10=174";
@@ -97,7 +97,7 @@ public class FIXStandardTestCases {
                 STRINGENCODER,//Outgoing
                 LOGHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
-                new FIXMessageDecoder(headerFields, trailerFields),
+                new FIXMessageDecoder(),
                 new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions));
 		
 		String logon = "8=FIX.4.29=7135=A34=549=HTX_DC52=20080912-13:23:19.55556=MPNLOMS4NJ98=0108=3010=212";

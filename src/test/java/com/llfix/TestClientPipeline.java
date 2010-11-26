@@ -43,7 +43,7 @@ public class TestClientPipeline<E> {
 				ChannelPipeline pipe = org.jboss.netty.channel.Channels.pipeline(
 						new StringDecoder(),
 						new StringEncoder(),
-						new FIXMessageDecoder(new ArrayList<FieldAndRequirement>(), new ArrayList<FieldAndRequirement>()),
+						new FIXMessageDecoder(),
 						new SimpleChannelHandler(){
 
 							@Override

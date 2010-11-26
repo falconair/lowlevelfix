@@ -62,7 +62,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
                 STRINGENCODER,//Outgoing
                 isDebugOn ? LOGHANDLER : NOOPHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
-                new FIXMessageDecoder(headerFields, trailerFields),
+                new FIXMessageDecoder(),
                 new FIXSessionProcessor(true,headerFields, trailerFields,logOnManager , sessions),
                 upstreamHandler);
         return pipe;
