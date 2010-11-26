@@ -182,8 +182,14 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 targetCompID = fix.get("56");
                 heartbeatDuration = Integer.parseInt(fix.get("108"));
                 
-                if(sessions.contains(senderCompID)){
+                if(!isInitiator && sessions.contains(senderCompID)){
                 	logger.error("Multiple logons not allowed for sender comp ID {}: {}",senderCompID, fix);
+                	ctx.getChannel().close();
+                    return;
+                }
+                
+                if(isInitiator && sessions.contains(targetCompID)){
+                	logger.error("Multiple logons not allowed for target comp ID {}: {}",targetCompID, fix);
                 	ctx.getChannel().close();
                     return;
                 }
