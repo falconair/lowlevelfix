@@ -86,8 +86,6 @@ final public class FIXInitiator {
 				},isDebugOn));
 		final ChannelFuture channelFut = client.connect(new InetSocketAddress(remoteAddress, remotePort));
 		
-		//TODO: if channel.write, does it go through all downstream handlers?
-	    //TODO Why isn't the code below working?
 		channelFut.addListener(new ChannelFutureListener() {
 			
 
@@ -116,6 +114,7 @@ final public class FIXInitiator {
 				});
 			}
 		});
+	
 	}
 	
 	public void onMsg(IMessageCallback callback){

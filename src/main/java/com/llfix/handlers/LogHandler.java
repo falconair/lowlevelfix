@@ -36,7 +36,7 @@ public class LogHandler extends SimpleChannelHandler {
 	public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
 		logger.debug("Downstream: "+e.toString());
 		if(e instanceof MessageEvent){
-			logger.info("FIX IN:"+((MessageEvent)e).getMessage().toString());
+			logger.info("FIX OUT:"+((MessageEvent)e).getMessage().toString());
 		}
 		super.handleDownstream(ctx, e);
 	}
@@ -45,7 +45,7 @@ public class LogHandler extends SimpleChannelHandler {
 	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
 		if(!(e instanceof IdleStateEvent)) logger.debug("Upstream: "+e.toString());
 		if(e instanceof MessageEvent){
-			logger.info("FIX OUT:"+((MessageEvent)e).getMessage().toString());
+			logger.info("FIX IN:"+((MessageEvent)e).getMessage().toString());
 		}
 		super.handleUpstream(ctx, e);
 	}

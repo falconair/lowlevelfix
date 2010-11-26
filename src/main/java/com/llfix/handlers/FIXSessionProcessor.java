@@ -40,7 +40,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     private final List<FieldAndRequirement> trailerFields;
 	private final ILogonManager logonManager;
 	private final boolean isInitiator;
-	private final Set sessions;
+	private final Set<String> sessions;
 
     private AtomicInteger outgoingSeqNum = new AtomicInteger(1);
     private AtomicInteger incomingSeqNum = new AtomicInteger(1);
