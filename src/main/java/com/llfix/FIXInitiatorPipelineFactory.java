@@ -1,9 +1,10 @@
 package com.llfix;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.ChannelUpstreamHandler;
@@ -24,7 +25,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
 
     private final List<FieldAndRequirement> headerFields;
     private final List<FieldAndRequirement> trailerFields;
-	private final Set<String> sessions = new HashSet<String>();
+	private final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
 	private final ChannelUpstreamHandler upstreamHandler;
 	private final boolean isDebugOn;
 	

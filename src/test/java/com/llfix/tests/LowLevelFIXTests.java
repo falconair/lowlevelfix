@@ -2,10 +2,11 @@ package com.llfix.tests;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
 import org.jboss.netty.handler.codec.embedder.EncoderEmbedder;
 import org.jboss.netty.handler.codec.string.StringDecoder;
@@ -29,7 +30,7 @@ public class LowLevelFIXTests {
 						new ArrayList<FieldAndRequirement>(),
 						new ArrayList<FieldAndRequirement>(),
 						new DefaultLogonManager(),
-						new HashSet<String>()));
+						new ConcurrentHashMap<String, Channel>()));
 		
 		final Map<String,String> fix = new HashMap<String, String>();
 		fix.put("8", "FIX.4.2");

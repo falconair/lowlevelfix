@@ -9,9 +9,11 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channels;
@@ -40,7 +42,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     private final List<FieldAndRequirement> trailerFields;
 	private final ILogonManager logonManager;
 	private final boolean isInitiator;
-	private final Set<String> sessions;
+	private final ConcurrentMap<String,Channel> sessions;
 
     private AtomicInteger outgoingSeqNum = new AtomicInteger(1);
     private AtomicInteger incomingSeqNum = new AtomicInteger(1);
@@ -62,7 +64,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             final List<FieldAndRequirement> headerFields,
             final List<FieldAndRequirement> trailerFields,
             final ILogonManager logonManager,
-            final Set<String> sessions){
+            final ConcurrentMap<String,Channel> sessions){
 
         this.headerFields = new ArrayList<FieldAndRequirement>(headerFields);//not a simple assignment because this list is mutated below
         this.trailerFields = trailerFields;
@@ -182,17 +184,12 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 targetCompID = fix.get("56");
                 heartbeatDuration = Integer.parseInt(fix.get("108"));
                 
-                if(!isInitiator && sessions.contains(senderCompID)){
+                if(!isInitiator && sessions.containsKey(senderCompID)){
                 	logger.error("Multiple logons not allowed for sender comp ID {}: {}",senderCompID, fix);
                 	ctx.getChannel().close();
                     return;
                 }
                 
-                if(isInitiator && sessions.contains(targetCompID)){
-                	logger.error("Multiple logons not allowed for target comp ID {}: {}",targetCompID, fix);
-                	ctx.getChannel().close();
-                    return;
-                }
 
                 if(!logonManager.allowLogon(fix)){
                 	logger.error("Logon not allowed: {}",fix);
@@ -201,6 +198,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 }
                 
                 loggedIn = true;
+                
                 
                 if(!isInitiator){
                 	//logon ack
@@ -213,7 +211,9 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
         			outfixmap.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
         			outfixmap.put("98", "0"); //EncryptMethod=None
         			outfixmap.put("108", Integer.toString(heartbeatDuration));
-        			
+
+                	sessions.put(senderCompID, ctx.getChannel());
+
                 	Channels.write(ctx, Channels.future(ctx.getChannel()), outfixmap);
                 }
                 
@@ -372,6 +372,9 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     			Channels.write(ctx, Channels.future(ctx.getChannel()), outfixmap);
     			
     			loggedIn = false;
+    			if(!isInitiator){
+    				sessions.remove(senderCompID);
+    			}
             }
             //else{//commented out because just send ALL events on, no need to stop here?
             	//Not needed by the session logic, send it on

@@ -2,13 +2,14 @@ package com.llfix.tests;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import junit.framework.Assert;
 
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.local.LocalAddress;
 import org.jboss.netty.handler.codec.string.StringDecoder;
 import org.jboss.netty.handler.codec.string.StringEncoder;
@@ -41,7 +42,7 @@ public class FIXStandardTestCases {
 	 * @throws IOException 
 	 */
 	@Test public void S1ValidAndDuplicateLogon() throws IOException{
-	    final Set<String> sessions = new HashSet<String>();
+	    final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
 
 		final TestServerPipeline<Map<String,String>> server = new TestServerPipeline<Map<String,String>>(new LocalAddress(1234),
 				new IdleStateHandler(new org.jboss.netty.util.HashedWheelTimer(), 1, 1, 1),
@@ -66,7 +67,7 @@ public class FIXStandardTestCases {
 	 * @throws IOException 
 	 */
 	@Test public void S1NonLogon() throws IOException{
-	    final Set<String> sessions = new HashSet<String>();
+	    final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
 
 		final TestServerPipeline<Map<String,String>> server = new TestServerPipeline<Map<String,String>>(new LocalAddress(1234),
 				new IdleStateHandler(new org.jboss.netty.util.HashedWheelTimer(), 1, 1, 1),
@@ -88,7 +89,7 @@ public class FIXStandardTestCases {
 	 * @throws IOException 
 	 */
 	@Test public void S1LogonWithWrongSeqNum() throws IOException{
-	    final Set<String> sessions = new HashSet<String>();
+	    final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
 
 		final TestServerPipeline<Map<String,String>> server = new TestServerPipeline<Map<String,String>>(new LocalAddress(1234),
 				new IdleStateHandler(new org.jboss.netty.util.HashedWheelTimer(), 1, 1, 1),

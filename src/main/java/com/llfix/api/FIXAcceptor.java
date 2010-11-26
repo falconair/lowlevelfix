@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
@@ -40,11 +42,9 @@ final public class FIXAcceptor {
 	
 	private final ILogonManager logonManager;
 	
-	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
+	private final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
 	
-
-	private Channel channel;
-
+	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
 	
 	private FIXAcceptor(int remotePort, boolean isDebugOn,
 			List<FieldAndRequirement> headerFields,
@@ -66,6 +66,7 @@ final public class FIXAcceptor {
 				trailerFields,
 				isDebugOn,
 				logonManager,
+				sessions,
 				new ChannelUpstreamHandler() {
 					
 					@SuppressWarnings("unchecked")
@@ -92,10 +93,11 @@ final public class FIXAcceptor {
 		listeners.add(callback);
 	}
 	
-/*	public void sendMsg(Map<String,String> msg){
-		channel.write(msg);
+	public void sendMsg(String senderCompID, Map<String,String> msg){
+		final Channel channel = sessions.get(senderCompID);
+		if(channel!=null) channel.write(msg);
 	}
-*/
+
 
 	public int getRemotePort() {
 		return remotePort;
