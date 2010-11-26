@@ -12,11 +12,13 @@ public class FIXAcceptorTests {
 
 	@Test
 	public void connectionTest() throws IOException{
-		FIXAcceptor server = FIXAcceptor.Builder(5555).withDebugStatus(true).build();
+		final int port = 5555;
+		
+		FIXAcceptor server = FIXAcceptor.Builder(port).withDebugStatus(true).build();
 		server.startListening();
 		
 		final Map<String,String> msg = new LinkedHashMap<String,String>();
-		//test request or some other msg
+		//...test request or some other msg
 		server.sendMsg("SENDER", msg);
 		
 		System.in.read();
