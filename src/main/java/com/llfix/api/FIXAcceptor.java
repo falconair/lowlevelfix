@@ -23,15 +23,20 @@ import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.llfix.DefaultLogonManager;
 import com.llfix.FIXAcceptorPipelineFactory;
 import com.llfix.FIXInitiatorPipelineFactory;
 import com.llfix.ILogonManager;
+import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.util.FieldAndRequirement;
 import com.llfix.util.IMessageCallback;
 
 final public class FIXAcceptor {
+	
+	final static Logger logger = LoggerFactory.getLogger(FIXSessionProcessor.class);
 
 	private final int remotePort;
 	
@@ -96,6 +101,13 @@ final public class FIXAcceptor {
 	public void sendMsg(String senderCompID, Map<String,String> msg){
 		final Channel channel = sessions.get(senderCompID);
 		if(channel!=null) channel.write(msg);
+	}
+	
+	public void disconnect(String senderCompID, String reason){
+		logger.warn("Attempting to force close session for sender "+senderCompID+" for reason: "+reason);
+
+		final Channel channel = sessions.get(senderCompID);
+		if(channel!=null) channel.close();
 	}
 
 
