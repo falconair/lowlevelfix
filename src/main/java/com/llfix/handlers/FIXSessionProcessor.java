@@ -206,6 +206,17 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 loggedIn = true;
                 msgStore = qFactory.getQueue(senderCompID+"-"+targetCompID);
                 
+                for(Map<String,String> oldMsg : msgStore){
+                	if(oldMsg.get("49").equals(targetCompID)){
+                		//IF this was an outgoing message
+                		outgoingSeqNum.set(Integer.parseInt(oldMsg.get("34"))+1);
+                	}
+                	else if(oldMsg.get("49").equals(senderCompID)){
+                		//IF this was an incoming message
+                		incomingSeqNum.set(Integer.parseInt(oldMsg.get("34"))+1);
+                	}
+                }
+                
                 
                 if(!isInitiator){
                 	//logon ack
