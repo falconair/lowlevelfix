@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 
 import junit.framework.Assert;
@@ -25,6 +27,8 @@ import com.llfix.handlers.FIXMessageEncoder;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.handlers.LogHandler;
 import com.llfix.util.FieldAndRequirement;
+import com.llfix.util.IQueueFactory;
+import com.llfix.util.SimpleQueueFactory;
 
 
 public class FIXStandardTestCases {
@@ -42,7 +46,8 @@ public class FIXStandardTestCases {
 	 * @throws IOException 
 	 */
 	@Test public void S1ValidAndDuplicateLogon() throws IOException{
-	    final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
+	    final Map<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
+	    final IQueueFactory<Map<String,String>> msgStore = new SimpleQueueFactory<Map<String,String>>();
 
 		final TestServerPipeline<Map<String,String>> server = new TestServerPipeline<Map<String,String>>(new LocalAddress(1234),
 				new IdleStateHandler(new org.jboss.netty.util.HashedWheelTimer(), 1, 1, 1),
@@ -52,7 +57,7 @@ public class FIXStandardTestCases {
                 LOGHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
                 new FIXMessageDecoder(),
-                new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions));
+                new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions, msgStore));
 		
 		String logon = "8=FIX.4.29=6735=A34=149=CLIENT52=20101117-03:40:57.70556=SERVER98=0108=3010=147";
 		server.offer(logon);
@@ -68,6 +73,7 @@ public class FIXStandardTestCases {
 	 */
 	@Test public void S1NonLogon() throws IOException{
 	    final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
+	    final IQueueFactory<Map<String,String>> msgStore = new SimpleQueueFactory<Map<String,String>>();
 
 		final TestServerPipeline<Map<String,String>> server = new TestServerPipeline<Map<String,String>>(new LocalAddress(1234),
 				new IdleStateHandler(new org.jboss.netty.util.HashedWheelTimer(), 1, 1, 1),
@@ -77,7 +83,7 @@ public class FIXStandardTestCases {
                 LOGHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
                 new FIXMessageDecoder(),
-                new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions));
+                new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions, msgStore));
 		
 		String logon = "8=FIX.4.29=5935=034=349=HTX_DC52=20080912-13:24:19.56356=MPNLOMS4NJ10=174";
 		server.offer(logon);
@@ -90,6 +96,7 @@ public class FIXStandardTestCases {
 	 */
 	@Test public void S1LogonWithWrongSeqNum() throws IOException{
 	    final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
+	    final IQueueFactory<Map<String,String>> msgStore = new SimpleQueueFactory<Map<String,String>>();
 
 		final TestServerPipeline<Map<String,String>> server = new TestServerPipeline<Map<String,String>>(new LocalAddress(1234),
 				new IdleStateHandler(new org.jboss.netty.util.HashedWheelTimer(), 1, 1, 1),
@@ -99,7 +106,7 @@ public class FIXStandardTestCases {
                 LOGHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
                 new FIXMessageDecoder(),
-                new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions));
+                new FIXSessionProcessor(false, headerFields, trailerFields, logonManager, sessions, msgStore));
 		
 		String logon = "8=FIX.4.29=7135=A34=549=HTX_DC52=20080912-13:23:19.55556=MPNLOMS4NJ98=0108=3010=212";
 		server.offer(logon);

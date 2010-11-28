@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
@@ -22,6 +23,8 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import com.llfix.FIXInitiatorPipelineFactory;
 import com.llfix.util.FieldAndRequirement;
 import com.llfix.util.IMessageCallback;
+import com.llfix.util.IQueueFactory;
+import com.llfix.util.SimpleQueueFactory;
 
 final public class FIXInitiator {
 
@@ -38,6 +41,9 @@ final public class FIXInitiator {
 	
 	private final List<FieldAndRequirement> headerFields;
 	private final List<FieldAndRequirement> trailerFields;
+
+	private final Map<String,Channel> sessions;
+	private final IQueueFactory<Map<String,String>> queueFactory;
 	
 	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
 
@@ -47,7 +53,9 @@ final public class FIXInitiator {
 	private FIXInitiator(String version, String senderCompID, String targetCompID, 
 			String remoteAddress, int remotePort, int heartBeat, boolean isDebugOn,
 			List<FieldAndRequirement> headerFields,
-			List<FieldAndRequirement> trailerFields) {
+			List<FieldAndRequirement> trailerFields,
+			Map<String,Channel> sessions,
+			IQueueFactory<Map<String,String>> queueFactory) {
 		super();
 		this.version = version;
 		this.senderCompID = senderCompID;
@@ -58,6 +66,8 @@ final public class FIXInitiator {
 		this.isDebugOn = isDebugOn;
 		this.headerFields = headerFields;
 		this.trailerFields = trailerFields;
+		this.sessions = sessions;
+		this.queueFactory = queueFactory;
 	}
 	
 	public void logOn(){
@@ -66,6 +76,8 @@ final public class FIXInitiator {
 		client.setPipelineFactory(new FIXInitiatorPipelineFactory(
 				headerFields, 
 				trailerFields,
+				sessions,
+				queueFactory,
 				new ChannelUpstreamHandler() {
 					
 					@SuppressWarnings("unchecked")
@@ -192,6 +204,9 @@ final public class FIXInitiator {
 		private List<FieldAndRequirement> headerFields = new ArrayList<FieldAndRequirement>();
 		private List<FieldAndRequirement> trailerFields = new ArrayList<FieldAndRequirement>();
 		
+		private Map<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
+		private IQueueFactory<Map<String,String>> queueFactory = new SimpleQueueFactory<Map<String,String>>();
+		
 		public Builder(String version, String senderCompID,String targetCompID, String remoteAddress, int remotePort) {
 			super();
 			this.version = version;
@@ -199,6 +214,16 @@ final public class FIXInitiator {
 			this.targetCompID = targetCompID;
 			this.remoteAddress = remoteAddress;
 			this.remotePort = remotePort;
+		}
+		
+		public Builder withSessionStoreFactory(Map<String,Channel> sessions){
+			this.sessions = sessions;
+			return this;
+		}
+		
+		public Builder withMsgStoreFactory(IQueueFactory<Map<String,String>> queueFactory){
+			this.queueFactory = queueFactory;
+			return this;
 		}
 		
 		public Builder withDebugStatus(boolean isOn){
@@ -227,7 +252,9 @@ final public class FIXInitiator {
 					heartBeat,
 					isDebugOn,
 					headerFields, 
-					trailerFields);
+					trailerFields,
+					sessions,
+					queueFactory);
 		}
 		
 		

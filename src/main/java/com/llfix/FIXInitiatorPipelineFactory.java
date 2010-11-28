@@ -1,8 +1,8 @@
 package com.llfix;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -19,15 +19,18 @@ import com.llfix.handlers.FIXMessageEncoder;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.handlers.LogHandler;
 import com.llfix.util.FieldAndRequirement;
+import com.llfix.util.IQueueFactory;
+import com.llfix.util.SimpleQueueFactory;
 
 
 public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
 
     private final List<FieldAndRequirement> headerFields;
     private final List<FieldAndRequirement> trailerFields;
-	private final ConcurrentMap<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
 	private final ChannelUpstreamHandler upstreamHandler;
 	private final boolean isDebugOn;
+	private final Map<String,Channel> sessions;
+	private final IQueueFactory<Map<String,String>> queueFactory;
 	
 	private final static ILogonManager logOnManager = new DefaultLogonManager();
 
@@ -35,18 +38,25 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
     public FIXInitiatorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
             final List<FieldAndRequirement> trailerFields){
-    	this(headerFields,trailerFields, new SimpleChannelUpstreamHandler(), false);
+    	this(headerFields,trailerFields, 
+    			new ConcurrentHashMap<String, Channel>(), 
+    			new SimpleQueueFactory<Map<String,String>>(), 
+    			new SimpleChannelUpstreamHandler(), false);
     }
 
     public FIXInitiatorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
             final List<FieldAndRequirement> trailerFields,
+            final Map<String,Channel> sessions,
+            final IQueueFactory<Map<String,String>> queueFactory,
             final ChannelUpstreamHandler upstreamHandler,
             final boolean isDebugOn){
         this.headerFields = headerFields;
         this.trailerFields = trailerFields;
         this.upstreamHandler = upstreamHandler;
         this.isDebugOn = isDebugOn;
+        this.sessions = sessions;
+        this.queueFactory = queueFactory;
     }
     
     private static StringDecoder STRINGDECODER = new StringDecoder();
@@ -64,7 +74,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
                 isDebugOn ? LOGHANDLER : NOOPHANDLER,
                 new FIXMessageEncoder(headerFields, trailerFields),
                 new FIXMessageDecoder(),
-                new FIXSessionProcessor(true,headerFields, trailerFields,logOnManager , sessions),
+                new FIXSessionProcessor(true,headerFields, trailerFields,logOnManager , sessions, queueFactory),
                 upstreamHandler);
         return pipe;
     }
