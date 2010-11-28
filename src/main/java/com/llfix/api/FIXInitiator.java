@@ -70,7 +70,7 @@ final public class FIXInitiator {
 		this.queueFactory = queueFactory;
 	}
 	
-	public void logOn(){
+	public void logOn(final Map<String,String> logon){
 		final ClientSocketChannelFactory cf = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
 		final ClientBootstrap client = new ClientBootstrap(cf);
 		client.setPipelineFactory(new FIXInitiatorPipelineFactory(
@@ -106,15 +106,7 @@ final public class FIXInitiator {
 				System.out.println("Connection status:"+future);
 				channel = future.getChannel();
 				
-				final Map<String,String> logon = new LinkedHashMap<String, String>();
-				logon.put("8", version);
-				logon.put("56", targetCompID);
-				logon.put("49", senderCompID);
-				logon.put("34", "1");//TODO unless session is new, seqnum is not 1!
-
-				logon.put("35", "A");
-				logon.put("98", "0");
-				logon.put("108", Integer.toString(heartBeat));
+				
 
 				ChannelFuture x = channel.write(logon);
 				x.addListener(new ChannelFutureListener() {
@@ -126,6 +118,19 @@ final public class FIXInitiator {
 				});
 			}
 		});
+	}
+	
+	public void logOn(){
+		final Map<String,String> logon = new LinkedHashMap<String, String>();
+		logon.put("8", version);
+		logon.put("56", targetCompID);
+		logon.put("49", senderCompID);
+		logon.put("34", "1");//TODO unless session is new, seqnum is not 1!
+
+		logon.put("35", "A");
+		logon.put("98", "0");
+		logon.put("108", Integer.toString(heartBeat));
+		logOn(logon);
 	
 	}
 	

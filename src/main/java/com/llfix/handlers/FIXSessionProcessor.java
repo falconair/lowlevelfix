@@ -32,6 +32,7 @@ import com.llfix.util.IQueueFactory;
 //TODO: All map access, specifically fix.get access, may return null!
 //TODO: seqnums should be long instead of int
 //TODO: confirm that handlers can't be called by multiple threads
+//TODO: Handle msgStore initialization when initiator sends logon (currently only acceptor does it)
 public class FIXSessionProcessor extends SimpleChannelHandler {
 
     final static Logger logger = LoggerFactory.getLogger(FIXSessionProcessor.class);
