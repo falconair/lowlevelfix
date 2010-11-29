@@ -472,8 +472,16 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
         logger.warn("FIXSessionProcessor",e.getCause());
         super.exceptionCaught(ctx, e);
     }
+    
+    
 
-    public static final String checksum(final CharSequence str) {
+    @Override
+	protected void finalize() throws Throwable {
+    	sessions.remove(senderCompID);
+		super.finalize();
+	}
+
+	public static final String checksum(final CharSequence str) {
         int val = 0;
         for (int i = 0; i < str.length(); i++) {
             val += str.charAt(i);
