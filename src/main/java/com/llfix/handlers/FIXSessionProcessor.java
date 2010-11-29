@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,13 +24,8 @@ import org.slf4j.LoggerFactory;
 import com.llfix.ILogonManager;
 import com.llfix.util.FieldAndRequirement;
 import com.llfix.util.IQueueFactory;
+import com.llfix.util.ISimpleQueue;
 
-//TODO: Check all exceptions thrown by handlers, nothing should blow up the pipe!
-//TODO: Log messages must all contains sender/target/ip/time expected/actual full message
-//TODO: All map access, specifically fix.get access, may return null!
-//TODO: seqnums should be long instead of int
-//TODO: confirm that handlers can't be called by multiple threads
-//TODO: Handle msgStore initialization when initiator sends logon (currently only acceptor does it)
 public class FIXSessionProcessor extends SimpleChannelHandler {
 
     final static Logger logger = LoggerFactory.getLogger(FIXSessionProcessor.class);
@@ -57,7 +50,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     private final IQueueFactory<Map<String,String>> qFactory;
     
 	private Map<String,Channel> sessions;
-    private Queue<Map<String,String>> msgStore;
+    private ISimpleQueue<Map<String,String>> msgStore;
 
 
     public FIXSessionProcessor(
@@ -89,7 +82,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     		
     		if(loggedIn){
         		
-        		msgStore.add(fix);
+        		msgStore.offer(fix);
         		
         		if(!isResending.get()){
             		fix.put("8", fixVersion);
