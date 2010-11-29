@@ -4,12 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
-import org.jboss.netty.handler.codec.embedder.EncoderEmbedder;
 import org.jboss.netty.handler.codec.string.StringDecoder;
 import org.jboss.netty.util.CharsetUtil;
 import org.junit.Assert;
@@ -17,7 +15,6 @@ import org.junit.Test;
 
 import com.llfix.DefaultLogonManager;
 import com.llfix.handlers.FIXFrameDecoder;
-import com.llfix.handlers.FIXMessageEncoder;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.util.FieldAndRequirement;
 import com.llfix.util.SimpleQueueFactory;
@@ -33,7 +30,7 @@ public class LowLevelFIXTests {
 						new ArrayList<FieldAndRequirement>(),
 						new DefaultLogonManager(),
 						new ConcurrentHashMap<String, Channel>(),
-						new SimpleQueueFactory<Map<String,String>>()));
+						new SimpleQueueFactory<String>()));
 		
 		final Map<String,String> fix = new HashMap<String, String>();
 		fix.put("8", "FIX.4.2");
@@ -42,18 +39,6 @@ public class LowLevelFIXTests {
 		
 	}
 	
-	@Test
-	public void testFIXMessageEncoder(){
-		final EncoderEmbedder<String> h = new EncoderEmbedder<String>(
-				new FIXMessageEncoder(new ArrayList<FieldAndRequirement>(),new ArrayList<FieldAndRequirement>()));
-		
-		final Map<String,String> fix = new HashMap<String, String>();
-		fix.put("8", "FIX.4.2");
-
-		h.offer(fix);
-
-		Assert.assertTrue(h.poll().startsWith("8=FIX.4.2"));
-	}
 
 	@Test
 	public void testFIXFrameDecoder() {

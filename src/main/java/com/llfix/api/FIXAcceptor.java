@@ -42,7 +42,7 @@ final public class FIXAcceptor {
 	private final ILogonManager logonManager;
 	
 	private final Map<String,Channel> sessions;
-	private final IQueueFactory<Map<String,String>> queueFactory;
+	private final IQueueFactory<String> queueFactory;
 	
 	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
 	
@@ -50,7 +50,7 @@ final public class FIXAcceptor {
 			List<FieldAndRequirement> headerFields,
 			List<FieldAndRequirement> trailerFields,
 			Map<String,Channel> sessions,
-			IQueueFactory<Map<String,String>> queueFactory,
+			IQueueFactory<String> queueFactory,
 			ILogonManager logonManager) {
 		super();
 		this.remotePort = remotePort;
@@ -144,7 +144,7 @@ final public class FIXAcceptor {
 		private ILogonManager logonManager = new DefaultLogonManager();
 		
 		private Map<String,Channel> sessions= new ConcurrentHashMap<String, Channel>();
-		private IQueueFactory<Map<String,String>> queueFactory = new SimpleQueueFactory<Map<String,String>>();
+		private IQueueFactory<String> queueFactory = new SimpleQueueFactory<String>();
 		
 		public Builder(int remotePort) {
 			super();
@@ -156,7 +156,7 @@ final public class FIXAcceptor {
 			return this;
 		}
 		
-		public Builder withMsgStoreFactory(IQueueFactory<Map<String,String>> queueFactory){
+		public Builder withMsgStoreFactory(IQueueFactory<String> queueFactory){
 			this.queueFactory = queueFactory;
 			return this;
 		}

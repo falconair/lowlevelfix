@@ -14,8 +14,6 @@ import org.jboss.netty.handler.codec.string.StringEncoder;
 import org.jboss.netty.handler.timeout.IdleStateHandler;
 
 import com.llfix.handlers.FIXFrameDecoder;
-import com.llfix.handlers.FIXMessageDecoder;
-import com.llfix.handlers.FIXMessageEncoder;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.handlers.LogHandler;
 import com.llfix.util.FieldAndRequirement;
@@ -30,7 +28,7 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
     private final ChannelUpstreamHandler upstreamHandler;
 	private final ILogonManager logonManager;
 	private final Map<String,Channel> sessions;
-	private final IQueueFactory<Map<String,String>> queueFactory;
+	private final IQueueFactory<String> queueFactory;
 	private final boolean isDebugOn;
 
     public FIXAcceptorPipelineFactory(
@@ -38,7 +36,7 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
             final List<FieldAndRequirement> trailerFields){
         this(headerFields,trailerFields,true,new DefaultLogonManager(),
         		new ConcurrentHashMap<String, Channel>(),
-        		new SimpleQueueFactory<Map<String,String>>(),
+        		new SimpleQueueFactory<String>(),
         		new SimpleChannelUpstreamHandler());
     }
     
@@ -48,7 +46,7 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
             final boolean isDebugOn,
             final ILogonManager logonManager,
             final Map<String,Channel> sessions,
-            final IQueueFactory<Map<String,String>> queueFactory,
+            final IQueueFactory<String> queueFactory,
             final ChannelUpstreamHandler upstreamHandler){
         this.headerFields = headerFields;
         this.trailerFields = trailerFields;
@@ -72,8 +70,6 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
                 STRINGDECODER,//Incoming
                 STRINGENCODER,//Outgoing
                 isDebugOn ? LOGHANDLER : NOOPHANDLER,
-                new FIXMessageEncoder(headerFields, trailerFields),
-                new FIXMessageDecoder(),
                 new FIXSessionProcessor(false,headerFields, trailerFields, logonManager, sessions,queueFactory),
                 upstreamHandler
                 );

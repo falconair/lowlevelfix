@@ -43,7 +43,7 @@ final public class FIXInitiator {
 	private final List<FieldAndRequirement> trailerFields;
 
 	private final Map<String,Channel> sessions;
-	private final IQueueFactory<Map<String,String>> queueFactory;
+	private final IQueueFactory<String> queueFactory;
 	
 	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
 
@@ -55,7 +55,7 @@ final public class FIXInitiator {
 			List<FieldAndRequirement> headerFields,
 			List<FieldAndRequirement> trailerFields,
 			Map<String,Channel> sessions,
-			IQueueFactory<Map<String,String>> queueFactory) {
+			IQueueFactory<String> queueFactory) {
 		super();
 		this.version = version;
 		this.senderCompID = senderCompID;
@@ -210,7 +210,7 @@ final public class FIXInitiator {
 		private List<FieldAndRequirement> trailerFields = new ArrayList<FieldAndRequirement>();
 		
 		private Map<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
-		private IQueueFactory<Map<String,String>> queueFactory = new SimpleQueueFactory<Map<String,String>>();
+		private IQueueFactory<String> queueFactory = new SimpleQueueFactory<String>();
 		
 		public Builder(String version, String senderCompID,String targetCompID, String remoteAddress, int remotePort) {
 			super();
@@ -226,7 +226,7 @@ final public class FIXInitiator {
 			return this;
 		}
 		
-		public Builder withMsgStoreFactory(IQueueFactory<Map<String,String>> queueFactory){
+		public Builder withMsgStoreFactory(IQueueFactory<String> queueFactory){
 			this.queueFactory = queueFactory;
 			return this;
 		}
