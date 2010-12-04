@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
+import com.llfix.api.FIXAcceptor;
 import com.llfix.api.FIXInitiator;
 import com.llfix.util.DiskQueueFactory;
 
@@ -17,6 +18,14 @@ public class ManualTests {
 			.build();
 		fix.logOn();
 		
+		System.in.read();
+	}
+	
+	@Test
+	public void acceptorTest() throws IOException{
+		FIXAcceptor fix = FIXAcceptor.Builder(5555).withMsgStoreFactory(new DiskQueueFactory("data")).build();
+		fix.startListening();
+
 		System.in.read();
 	}
 }
