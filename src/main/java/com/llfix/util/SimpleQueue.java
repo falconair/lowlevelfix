@@ -9,8 +9,8 @@ public final class SimpleQueue<E> implements ISimpleQueue<E> {
 	private final Queue<E> q = new ConcurrentLinkedQueue<E>();
 	
 	@Override
-	public boolean offer(E e) {
-		return q.offer(e);
+	public void offer(E e) {
+		q.offer(e);
 	}
 
 	@Override

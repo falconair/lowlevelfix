@@ -1,42 +1,85 @@
 package com.llfix.util;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.List;
+import java.util.Set;
 
-public class DiskQueue<E> implements ISimpleQueue<E> {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-	private final Queue<E> q;
+import com.llfix.handlers.FIXSessionProcessor;
+
+public class DiskQueue implements ISimpleQueue<String> {
+	
+	final static Logger logger = LoggerFactory.getLogger(DiskQueue.class);
+
 	private final BufferedWriter writer;
+	private final List<String> contents = new ArrayList<String>();
+	private static final Set<String> openFiles = new HashSet<String>();
+	private final String name;
 	
-	public DiskQueue(String name) throws IOException{
-		q = new ConcurrentLinkedQueue<E>();
-		final File file = new File(name);
+	public static synchronized DiskQueue getInstance(String name) throws Exception{
+		return getInstance("",name);
+	}
+	
+	public static synchronized DiskQueue getInstance(String directory, String name) throws Exception{
+		if(openFiles.contains(name)) throw new Exception("File "+name+" already open");
+		openFiles.add(name);
+		return new DiskQueue(directory, name);
+	}
+	
+	private DiskQueue(String directory, String name) throws Exception{
+		
+		this.name = name;
+		logger.info("Creating file "+name);
+		
+		final File file = new File(directory, name);
 		if(file.exists()){
-			//TODO: load file into q
-			//then close file (to be opened below again)
+			final BufferedReader in = new BufferedReader(new FileReader(file));
+			String line;
+			while((line = in.readLine()) != null){
+				contents.add(line);
+			}
+			in.close();
 		}
-		writer = new BufferedWriter(new FileWriter(file));
+		writer = new BufferedWriter(new FileWriter(file,true));
 	}
 	
 	@Override
-	public Iterator<E> iterator() {
-		return q.iterator();
+	public Iterator<String> iterator() {
+		return contents.iterator();
 	}
 
 	@Override
-	public boolean offer(E e) {
-		try {
-			writer.write(e.toString());
-		} catch (IOException e1) {
-			return false;
-			//TODO: Record this exception
+	public void offer(String e) throws Exception {
+		contents.add(e);
+		writer.append(e+"\n");//TODO find a better way to do platform independent newline
+		writer.flush();
+	}
+	
+	public void close() throws IOException{
+		writer.close();
+		openFiles.remove(name);
+	}
+	
+	@Override
+	protected void finalize() throws Throwable {
+		try{
+			writer.close();
+			openFiles.remove(name);
 		}
-		return q.offer(e);
+		catch(Exception e){
+			//TODO: ignore?
+		}
+		super.finalize();
 	}
 
 }

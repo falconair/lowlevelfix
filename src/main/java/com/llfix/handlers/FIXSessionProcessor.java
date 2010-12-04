@@ -98,17 +98,40 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             		fix.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
 
             		final String fixstr = encodeAndCalcChksmCalcBodyLen(fix, headerFields, trailerFields);
+
             		msgStore.offer(fixstr);
             		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
         		}
     		}
     		else{
     			if(fix.get("35").equals("A")){
+
+    				final String senderCompID = fix.get("56");
+                    final String targetCompID = fix.get("49");
+
+                    msgStore = qFactory.getQueue(senderCompID+"-"+targetCompID);
+            		for(String oldMsgStr : msgStore){
+                    	final Map<String,String> oldMsg = decode(oldMsgStr);
+                    	if(oldMsg.get("49").equals(targetCompID)){
+                    		//IF this was an outgoing message
+                    		outgoingSeqNum.set(Integer.parseInt(oldMsg.get("34"))+1);
+                    	}
+                    	else if(oldMsg.get("49").equals(senderCompID)){
+                    		//IF this was an incoming message
+                    		incomingSeqNum.set(Integer.parseInt(oldMsg.get("34"))+1);
+                    	}
+                    }
+            		
+            		fix.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+
     				final String fixstr = encodeAndCalcChksmCalcBodyLen(fix, headerFields, trailerFields);
+
             		msgStore.offer(fixstr);
             		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);				
     			}
-    			logger.error("Attempt to send a non-logon message, while not logged in: "+fix);
+    			else{
+    				logger.error("Attempt to send a non-logon message, while not logged in: "+fix);
+    			}
     			//TODO: send exception to sender
     		}
     	}
@@ -222,7 +245,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 }
                 
                 loggedIn = true;
-                msgStore = qFactory.getQueue(senderCompID+"-"+targetCompID);
+                
+                if(!isInitiator) msgStore = qFactory.getQueue(senderCompID+"-"+targetCompID);
                 
                 for(String oldMsgStr : msgStore){
                 	final Map<String,String> oldMsg = decode(oldMsgStr);
