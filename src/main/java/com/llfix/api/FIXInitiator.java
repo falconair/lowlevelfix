@@ -125,13 +125,26 @@ final public class FIXInitiator {
 		logon.put("8", version);
 		logon.put("56", targetCompID);
 		logon.put("49", senderCompID);
-		logon.put("34", "1");//TODO unless session is new, seqnum is not 1!
 
 		logon.put("35", "A");
 		logon.put("98", "0");
 		logon.put("108", Integer.toString(heartBeat));
 		logOn(logon);
 	
+	}
+	
+	public void logOff(){
+		final Map<String,String> logoff = new LinkedHashMap<String, String>();
+		logoff.put("8", version);
+		logoff.put("56", targetCompID);
+		logoff.put("49", senderCompID);
+
+		logoff.put("35", "5");
+		logOff(logoff); 
+	}
+	
+	public void logOff(Map<String,String> msg){
+		channel.write(msg);
 	}
 	
 	public void onMsg(IMessageCallback callback){

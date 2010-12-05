@@ -2,6 +2,7 @@ package com.llfix.api;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -103,11 +104,20 @@ final public class FIXAcceptor {
 		if(channel!=null) channel.write(msg);
 	}
 	
-	public void disconnect(String senderCompID, String reason){
+	public void killConnection(String senderCompID, String reason){
 		logger.warn("Attempting to force close session for sender "+senderCompID+" for reason: "+reason);
 
 		final Channel channel = sessions.get(senderCompID);
 		if(channel!=null) channel.close();
+	}
+	
+	public void logOff(String senderCompID, String reason){
+		//TODO: provide functionality
+		final Channel channel = sessions.get(senderCompID);
+		
+		final Map<String,String> logoff = new LinkedHashMap<String, String>();
+		logoff.put("35", "5");
+		if(channel!=null) channel.write(logoff);
 	}
 
 

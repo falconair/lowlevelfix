@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelEvent;
@@ -333,7 +332,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 
                 if (isPosDup) {
                     logger.info("This posdup message's seqno has already been processed.  Application must handle: {}", fix);
-                    //return;
+                    return; //TODO: how should posdups be handled?
                 } else {
                     logger.warn("Incoming sequence number lower than expected. No way to recover message: {}", fix);
                     ctx.getChannel().close();
@@ -464,6 +463,10 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     			loggedIn = false;
     			if(!isInitiator){
     				sessions.remove(senderCompID);
+    			}
+    			else{
+    				//If initiator, then after receiving logoff confirm, disconnect
+    				ctx.getChannel().disconnect();
     			}
             }
             //else{//commented out because just send ALL events on, no need to stop here?
