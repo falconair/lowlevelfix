@@ -44,8 +44,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 	private final ILogonManager logonManager;
 	private final boolean isInitiator;
 
-    private AtomicInteger outgoingSeqNum = new AtomicInteger(1);
-    private AtomicInteger incomingSeqNum = new AtomicInteger(1);
+    private long outgoingSeqNum = 1l;
+    private long incomingSeqNum = 1l;
     private boolean loggedIn = false;
     private boolean resendRequested = false;
     private AtomicBoolean isResending = new AtomicBoolean(false);
@@ -96,7 +96,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             		fix.put("8", fixVersion);
             		fix.put("56", senderCompID);
             		fix.put("49", targetCompID);
-            		fix.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+            		fix.put("34", Long.toString(outgoingSeqNum));
+            		outgoingSeqNum++;
 
             		final String fixstr = encodeAndCalcChksmCalcBodyLen(fix, headerFields, trailerFields);
 
@@ -115,15 +116,16 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                     	final Map<String,String> oldMsg = decode(oldMsgStr);
                     	if(oldMsg.get("49").equals(targetCompID)){
                     		//IF this was an outgoing message
-                    		outgoingSeqNum.set(Integer.parseInt(oldMsg.get("34"))+1);
+                    		outgoingSeqNum = Long.parseLong(oldMsg.get("34"))+1;
                     	}
                     	else if(oldMsg.get("49").equals(senderCompID)){
                     		//IF this was an incoming message
-                    		incomingSeqNum.set(Integer.parseInt(oldMsg.get("34"))+1);
+                    		incomingSeqNum = Long.parseLong(oldMsg.get("34"))+1;
                     	}
                     }
             		
-            		fix.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+            		fix.put("34", Long.toString(outgoingSeqNum));
+            		outgoingSeqNum++;
 
     				final String fixstr = encodeAndCalcChksmCalcBodyLen(fix, headerFields, trailerFields);
 
@@ -179,7 +181,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                     	rej.put("45", fix.get("34"));
                     	rej.put("373", "1");
                     	rej.put("58", String.format("Tag %s is required but missing", k));
-                    	rej.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+                    	rej.put("34", Long.toString(outgoingSeqNum));
+                    	outgoingSeqNum++;
                     	final String fixstr = encodeAndCalcChksmCalcBodyLen(rej, headerFields, trailerFields);
                 		msgStore.offer(fixstr);
                 		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
@@ -205,7 +208,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                     	rej.put("45", fix.get("34"));
                     	rej.put("373", "1");
                     	rej.put("58", String.format("Tag %s is required but missing", k));
-                    	rej.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+                    	rej.put("34", Long.toString(outgoingSeqNum));
+                    	outgoingSeqNum++;
                     	final String fixstr = encodeAndCalcChksmCalcBodyLen(rej, headerFields, trailerFields);
                 		msgStore.offer(fixstr);
                 		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
@@ -253,11 +257,11 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 	final Map<String,String> oldMsg = decode(oldMsgStr);
                 	if(oldMsg.get("49").equals(targetCompID)){
                 		//IF this was an outgoing message
-                		outgoingSeqNum.set(Integer.parseInt(oldMsg.get("34"))+1);
+                		outgoingSeqNum = Long.parseLong(oldMsg.get("34"))+1;
                 	}
                 	else if(oldMsg.get("49").equals(senderCompID)){
                 		//IF this was an incoming message
-                		incomingSeqNum.set(Integer.parseInt(oldMsg.get("34"))+1);
+                		incomingSeqNum = Long.parseLong(oldMsg.get("34"))+1;
                 	}
                 }
                 
@@ -270,7 +274,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             		outfixmap.put("49", targetCompID);
 
         			outfixmap.put("35", "A");
-        			outfixmap.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+        			outfixmap.put("34", Long.toString(outgoingSeqNum));
+        			outgoingSeqNum++;
         			outfixmap.put("98", "0"); //EncryptMethod=None
         			outfixmap.put("108", Integer.toString(heartbeatDuration));
 
@@ -291,10 +296,10 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                     && (fix.get("123") == null || fix.get("123").equals("N"))) {//123=GapFillFlag
 
                 logger.info("Sequence reset request received: {}", fix);
-                final int resetSeqNo = Integer.parseInt(fix.get("36"));
+                final long resetSeqNo = Long.parseLong(fix.get("36"));
 
-                if (resetSeqNo <= incomingSeqNum.get()) {
-                	final String error = String.format("Sequence reset request may only increment sequence number current seqno=%s, reset req=%s",incomingSeqNum.get(),resetSeqNo);
+                if (resetSeqNo <= incomingSeqNum) {
+                	final String error = String.format("Sequence reset request may only increment sequence number current seqno=%s, reset req=%s",incomingSeqNum,resetSeqNo);
                 	logger.error(error);
                     
                 	final Map<String,String> outfixmap = new LinkedHashMap<String, String>();
@@ -303,7 +308,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             		outfixmap.put("49", targetCompID);
 
         			outfixmap.put("35", "3"); //Session Reject
-        			outfixmap.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+        			outfixmap.put("34", Long.toString(outgoingSeqNum));
+        			outgoingSeqNum++;
         			outfixmap.put("45", fix.get("34")); //RefSeqNum
         			outfixmap.put("58", error);
 
@@ -311,17 +317,17 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             		msgStore.offer(fixstr);
             		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
                 } else {
-                    incomingSeqNum.set(resetSeqNo);
+                    incomingSeqNum = resetSeqNo;
                 }
             }
 
 
             final int msgSeqNum = Integer.parseInt(fix.get("34"));
 
-            if (msgSeqNum == incomingSeqNum.get()) {
-                incomingSeqNum.getAndIncrement();
+            if (msgSeqNum == incomingSeqNum) {
+                incomingSeqNum++;
                 resendRequested = false;
-            } else if (msgSeqNum < incomingSeqNum.get()) {
+            } else if (msgSeqNum < incomingSeqNum) {
                 final String posDupStr = fix.get("43");
                 final boolean isPosDup = posDupStr==null? false : posDupStr.equals("Y") ? true : false;
 
@@ -333,7 +339,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                     ctx.getChannel().close();
                     return;
                 }
-            } else if (msgSeqNum > incomingSeqNum.get()) {
+            } else if (msgSeqNum > incomingSeqNum) {
                 //Missing messages, write resend request and don't process any more messages
                 //until the resend request is processed
                 //set flag signifying "waiting for resend"
@@ -344,8 +350,9 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             		outfixmap.put("49", targetCompID);
 
         			outfixmap.put("35", "2"); //Session Reject
-        			outfixmap.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
-        			outfixmap.put("7", Integer.toString(incomingSeqNum.get())); //BeginSeqNo
+        			outfixmap.put("34", Long.toString(outgoingSeqNum));
+        			outgoingSeqNum++;
+        			outfixmap.put("7", Long.toString(incomingSeqNum)); //BeginSeqNo
         			outfixmap.put("16", "0"); //EndSeqno
 
         			final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
@@ -370,7 +377,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
         		outfixmap.put("49", targetCompID);
 
     			outfixmap.put("35", "3"); //Session Reject
-    			outfixmap.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+    			outfixmap.put("34", Long.toString(outgoingSeqNum));
+    			outgoingSeqNum++;
     			outfixmap.put("45", fix.get("34")); //RefSeqNum
     			outfixmap.put("58", error);
 
@@ -401,7 +409,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 
     			outfixmap.put("35", "0");
     			outfixmap.put("112", TestReqID);
-    			outfixmap.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+    			outfixmap.put("34", Long.toString(outgoingSeqNum));
+    			outgoingSeqNum++;
 
     			final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
         		msgStore.offer(fixstr);
@@ -445,7 +454,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
         		outfixmap.put("49", targetCompID);
 
     			outfixmap.put("35", "5");
-    			outfixmap.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+    			outfixmap.put("34", Long.toString(outgoingSeqNum));
+    			outgoingSeqNum++;
 
     			final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
         		msgStore.offer(fixstr);
@@ -479,7 +489,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 	    		fixmap.put("49", targetCompID);
 
 				fixmap.put("35", "0");
-				fixmap.put("34", Integer.toString(outgoingSeqNum.getAndIncrement()));
+				fixmap.put("34", Long.toString(outgoingSeqNum));
+				outgoingSeqNum++;
 
 				final String fixstr = encodeAndCalcChksmCalcBodyLen(fixmap, headerFields, trailerFields);
         		msgStore.offer(fixstr);
