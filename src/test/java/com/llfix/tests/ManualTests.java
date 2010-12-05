@@ -14,6 +14,7 @@ public class ManualTests {
 	public void initiatorTest() throws IOException{
 		FIXInitiator fix = FIXInitiator.Builder("FIX.4.2", "CLIENT", "SERVER", "localhost", 5555)
 			.withHeartBeatSeconds(10)
+			.withDebugStatus(true)
 			.withMsgStoreFactory(new DiskQueueFactory("data"))
 			.build();
 		fix.logOn();
@@ -23,7 +24,9 @@ public class ManualTests {
 	
 	@Test
 	public void acceptorTest() throws IOException{
-		FIXAcceptor fix = FIXAcceptor.Builder(5555).withMsgStoreFactory(new DiskQueueFactory("data")).build();
+		FIXAcceptor fix = FIXAcceptor.Builder(5555)
+			.withDebugStatus(true)
+			.withMsgStoreFactory(new DiskQueueFactory("data")).build();
 		fix.startListening();
 
 		System.in.read();

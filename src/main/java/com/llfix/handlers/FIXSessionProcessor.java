@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
@@ -500,8 +501,16 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     
 
     @Override
+	public void channelDisconnected(ChannelHandlerContext ctx,ChannelStateEvent e) throws Exception {
+    	sessions.remove(senderCompID);
+    	qFactory.returnQueue(senderCompID+"-"+targetCompID);
+		super.channelDisconnected(ctx, e);
+	}
+
+	@Override
 	protected void finalize() throws Throwable {
     	sessions.remove(senderCompID);
+    	qFactory.returnQueue(senderCompID+"-"+targetCompID);
 		super.finalize();
 	}
 
