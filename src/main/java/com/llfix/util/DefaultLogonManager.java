@@ -1,5 +1,6 @@
 package com.llfix.util;
 
+import java.net.SocketAddress;
 import java.util.Map;
 
 import com.llfix.ILogonManager;
@@ -7,7 +8,7 @@ import com.llfix.ILogonManager;
 public class DefaultLogonManager implements ILogonManager {
 
 	@Override
-	public boolean allowLogon(Map<String, String> logonMessage) {
+	public boolean allowLogon(SocketAddress remoteAddress, Map<String, String> logonMessage) {
 		return true;
 	}
 

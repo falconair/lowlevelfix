@@ -242,7 +242,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 }
                 
 
-                if(!logonManager.allowLogon(fix)){
+                if(!logonManager.allowLogon(ctx.getChannel().getRemoteAddress(),fix)){
                 	logger.error("Logon not allowed: {}",fix);
                 	ctx.getChannel().close();
                     return;
