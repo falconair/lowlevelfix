@@ -4,6 +4,8 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.llfix.ISimpleQueue;
+
 public final class SimpleQueue<E> implements ISimpleQueue<E> {
 
 	private final Queue<E> q = new ConcurrentLinkedQueue<E>();

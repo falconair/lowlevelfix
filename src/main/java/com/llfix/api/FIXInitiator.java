@@ -21,9 +21,9 @@ import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 
 import com.llfix.FIXInitiatorPipelineFactory;
+import com.llfix.IMessageCallback;
+import com.llfix.IQueueFactory;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.IMessageCallback;
-import com.llfix.util.IQueueFactory;
 import com.llfix.util.SimpleQueueFactory;
 
 final public class FIXInitiator {

@@ -1,4 +1,4 @@
-package com.llfix.util;
+package com.llfix;
 
 import java.util.Map;
 

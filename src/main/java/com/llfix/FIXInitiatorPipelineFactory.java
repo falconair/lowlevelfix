@@ -16,8 +16,8 @@ import org.jboss.netty.handler.timeout.IdleStateHandler;
 import com.llfix.handlers.FIXFrameDecoder;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.handlers.LogHandler;
+import com.llfix.util.DefaultLogonManager;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.IQueueFactory;
 import com.llfix.util.SimpleQueueFactory;
 
 

@@ -15,6 +15,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.llfix.ISimpleQueue;
 import com.llfix.handlers.FIXSessionProcessor;
 
 public class DiskQueue implements ISimpleQueue<String> {

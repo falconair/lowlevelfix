@@ -20,13 +20,13 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.llfix.DefaultLogonManager;
 import com.llfix.FIXAcceptorPipelineFactory;
 import com.llfix.ILogonManager;
+import com.llfix.IMessageCallback;
+import com.llfix.IQueueFactory;
 import com.llfix.handlers.FIXSessionProcessor;
+import com.llfix.util.DefaultLogonManager;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.IMessageCallback;
-import com.llfix.util.IQueueFactory;
 import com.llfix.util.SimpleQueueFactory;
 
 final public class FIXAcceptor {

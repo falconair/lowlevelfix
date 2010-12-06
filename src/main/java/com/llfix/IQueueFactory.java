@@ -1,4 +1,5 @@
-package com.llfix.util;
+package com.llfix;
+
 
 
 public interface IQueueFactory<T> {

@@ -1,5 +1,8 @@
 package com.llfix.util;
 
+import com.llfix.IQueueFactory;
+import com.llfix.ISimpleQueue;
+
 
 public class SimpleQueueFactory<T> implements IQueueFactory<T> {
 

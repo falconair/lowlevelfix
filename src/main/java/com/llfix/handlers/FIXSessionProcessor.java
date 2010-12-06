@@ -27,9 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.llfix.ILogonManager;
+import com.llfix.IQueueFactory;
+import com.llfix.ISimpleQueue;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.IQueueFactory;
-import com.llfix.util.ISimpleQueue;
 
 public class FIXSessionProcessor extends SimpleChannelHandler {
 
@@ -85,7 +85,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     @SuppressWarnings("unchecked")
 	@Override
     public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
-    	if(event instanceof MessageEvent){
+    	if(event instanceof MessageEvent && ((MessageEvent)event).getMessage() instanceof Map<?,?>){
 
     		final Map<String,String> fix = (Map<String,String>) ((MessageEvent)event).getMessage();
     		
@@ -148,7 +148,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
     public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
 
 
-        if(event instanceof MessageEvent){
+        if(event instanceof MessageEvent && ((MessageEvent)event).getMessage() instanceof String){
         	final String msg = (String) ((MessageEvent) event).getMessage();
 
             //====Step 2: Validate message====

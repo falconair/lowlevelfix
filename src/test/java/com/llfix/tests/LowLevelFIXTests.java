@@ -13,9 +13,9 @@ import org.jboss.netty.util.CharsetUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.llfix.DefaultLogonManager;
 import com.llfix.handlers.FIXFrameDecoder;
 import com.llfix.handlers.FIXSessionProcessor;
+import com.llfix.util.DefaultLogonManager;
 import com.llfix.util.FieldAndRequirement;
 import com.llfix.util.SimpleQueueFactory;
 
