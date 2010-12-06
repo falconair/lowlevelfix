@@ -132,7 +132,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);				
     			}
     			else{
-    				logger.error("Attempt to send a non-logon message, while not logged in: "+fix);
+    				logger.error(senderCompID+"->"+targetCompID+":Attempt to send a non-logon message, while not logged in: "+fix);
     			}
     			//TODO: send exception to sender
     		}
@@ -143,8 +143,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 
     }
 
-    @SuppressWarnings("unchecked")
-	@Override
+    @Override
     public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
 
 
@@ -170,7 +169,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 if(!far.isRequired()) continue;
                 String k = far.getTag();
                 if (!fix.containsKey(k)) { //Does not contain a required field
-                    logger.warn("Tag {} is required but missing in incoming message: {}", k, fix);
+                    logger.warn(String.format("%s->%s: Tag %s is required but missing in incoming message: %s",senderCompID,targetCompID, k, fix));
                     if (loggedIn) {
                     	final Map<String,String> rej = new HashMap<String, String>();
                 		rej.put("8", fixVersion);
@@ -197,7 +196,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 if(!far.isRequired()) continue;
                 String k = far.getTag();
                 if (!fix.containsKey(k)) { //Does not contain a required field
-                    logger.warn("Tag {} is required but missing in incoming message: {}", k, fix);
+                	logger.warn(String.format("%s->%s: Tag %s is required but missing in incoming message: %s",senderCompID,targetCompID, k, fix));
                     if (loggedIn) {
                     	final Map<String,String> rej = new HashMap<String, String>();
                 		rej.put("8", fixVersion);
@@ -243,7 +242,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 
 
                 if(!logonManager.allowLogon(ctx.getChannel().getRemoteAddress(),fix)){
-                	logger.error("Logon not allowed: {}",fix);
+                	logger.error(String.format("%s->%s: Logon not allowed: %s",senderCompID, targetCompID, fix));
                 	ctx.getChannel().close();
                     return;
                 }
@@ -294,11 +293,11 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
             if (msgType.equals("4" /*sequence reset*/)
                     && (fix.get("123") == null || fix.get("123").equals("N"))) {//123=GapFillFlag
 
-                logger.info("Sequence reset request received: {}", fix);
+                //logger.info("Sequence reset request received: {}", fix);
                 final long resetSeqNo = Long.parseLong(fix.get("36"));
 
                 if (resetSeqNo <= incomingSeqNum) {
-                	final String error = String.format("Sequence reset request may only increment sequence number current seqno=%s, reset req=%s",incomingSeqNum,resetSeqNo);
+                	final String error = String.format("%s->%s: Sequence reset request may only increment sequence number current seqno=%s, reset req=%s",senderCompID,targetCompID,incomingSeqNum,resetSeqNo);
                 	logger.error(error);
                     
                 	final Map<String,String> outfixmap = new LinkedHashMap<String, String>();
@@ -331,10 +330,10 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 final boolean isPosDup = posDupStr==null? false : posDupStr.equals("Y") ? true : false;
 
                 if (isPosDup) {
-                    logger.info("This posdup message's seqno has already been processed.  Application must handle: {}", fix);
+                    logger.info(String.format("%s->%s: This posdup message's seqno has already been processed.  Application must handle: %s",senderCompID,targetCompID, fix));
                     return; //TODO: how should posdups be handled?
                 } else {
-                    logger.warn("Incoming sequence number lower than expected. No way to recover message: {}", fix);
+                    logger.warn(String.format("%s->%s: Incoming sequence number lower than expected. No way to recover message: %s",senderCompID,targetCompID, fix));
                     ctx.getChannel().close();
                     return;
                 }
@@ -443,7 +442,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 }
                 
             } else if (msgType.equals("3")) {//SessionReject
-                logger.error("Session reject! message="+fix);
+                logger.error(String.format("%s->%s: Session reject message: %s",senderCompID,targetCompID,fix));
             } else if (msgType.equals("4")) {//SequenceReset
                 //Taken care of in step 6
             } else if (msgType.equals("5")) {//LogOut
