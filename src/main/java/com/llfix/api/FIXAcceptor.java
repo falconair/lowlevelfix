@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelEvent;
+import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.ExceptionEvent;
@@ -20,6 +21,7 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ObjectArrays;
 import com.llfix.FIXAcceptorPipelineFactory;
 import com.llfix.ILogonManager;
 import com.llfix.IMessageCallback;
@@ -46,13 +48,16 @@ final public class FIXAcceptor {
 	private final IQueueFactory<String> queueFactory;
 	
 	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
+
+	private final ChannelHandler[] channelHandlers;
 	
 	private FIXAcceptor(int remotePort, boolean isDebugOn,
 			List<FieldAndRequirement> headerFields,
 			List<FieldAndRequirement> trailerFields,
 			Map<String,Channel> sessions,
 			IQueueFactory<String> queueFactory,
-			ILogonManager logonManager) {
+			ILogonManager logonManager,
+			ChannelHandler ... channelHandlers) {
 		super();
 		this.remotePort = remotePort;
 		this.isDebugOn = isDebugOn;
@@ -61,6 +66,7 @@ final public class FIXAcceptor {
 		this.sessions = sessions;
 		this.queueFactory = queueFactory;
 		this.logonManager = logonManager;
+		this.channelHandlers = channelHandlers;
 	}
 	
 	public void startListening(){
@@ -73,24 +79,7 @@ final public class FIXAcceptor {
 				logonManager,
 				sessions,
 				queueFactory,
-				new ChannelUpstreamHandler() {
-					
-					@SuppressWarnings("unchecked")
-					@Override
-					public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-						if(e instanceof MessageEvent){
-							for(IMessageCallback cb : listeners){
-								cb.onMsg((Map<String,String>) ((MessageEvent)e).getMessage());
-							}
-						}
-						else if(e instanceof ExceptionEvent){
-							for(IMessageCallback cb : listeners){
-								cb.onException(((ExceptionEvent)e).getCause());
-							}
-						}
-						
-					}
-				}));
+				ObjectArrays.concat(channelHandlers, new MessageBroadcaster(listeners))));
 		server.bind(new InetSocketAddress("localhost", remotePort));
 	
 	}
@@ -112,7 +101,6 @@ final public class FIXAcceptor {
 	}
 	
 	public void logOff(String senderCompID, String reason){
-		//TODO: provide functionality
 		final Channel channel = sessions.get(senderCompID);
 		
 		final Map<String,String> logoff = new LinkedHashMap<String, String>();
@@ -142,6 +130,30 @@ final public class FIXAcceptor {
 		return new Builder(remotePort);
 	}
 
+	private static final class MessageBroadcaster implements ChannelUpstreamHandler {
+		private final List<IMessageCallback> listeners;
+
+		public MessageBroadcaster(List<IMessageCallback> listeners) {
+			this.listeners = listeners;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+			if(e instanceof MessageEvent){
+				for(IMessageCallback cb : listeners){
+					cb.onMsg((Map<String,String>) ((MessageEvent)e).getMessage());
+				}
+			}
+			else if(e instanceof ExceptionEvent){
+				for(IMessageCallback cb : listeners){
+					cb.onException(((ExceptionEvent)e).getCause());
+				}
+			}
+			
+		}
+	}
+
 	public static class Builder{
 		
 		private final int remotePort;
@@ -156,6 +168,8 @@ final public class FIXAcceptor {
 		private Map<String,Channel> sessions= new ConcurrentHashMap<String, Channel>();
 		private IQueueFactory<String> queueFactory = new SimpleQueueFactory<String>();
 		
+		private ChannelHandler[] channelHandlers = new ChannelHandler[0];
+		
 		public Builder(int remotePort) {
 			super();
 			this.remotePort = remotePort;
@@ -163,6 +177,11 @@ final public class FIXAcceptor {
 		
 		public Builder withSessionStoreFactory(Map<String,Channel> sessions){
 			this.sessions = sessions;
+			return this;
+		}
+		
+		public Builder withAdditionalHandlers(ChannelHandler ... handlers){
+			channelHandlers = handlers;
 			return this;
 		}
 		
@@ -195,7 +214,8 @@ final public class FIXAcceptor {
 					trailerFields,
 					sessions,
 					queueFactory,
-					logonManager);
+					logonManager,
+					channelHandlers);
 		}
 		
 		

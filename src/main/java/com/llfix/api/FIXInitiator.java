@@ -13,6 +13,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.ExceptionEvent;
@@ -20,6 +21,7 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 
+import com.google.common.collect.ObjectArrays;
 import com.llfix.FIXInitiatorPipelineFactory;
 import com.llfix.IMessageCallback;
 import com.llfix.IQueueFactory;
@@ -47,6 +49,8 @@ final public class FIXInitiator {
 	
 	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
 
+	private final ChannelHandler[] channelHandlers;
+
 	private Channel channel;
 
 	
@@ -55,7 +59,8 @@ final public class FIXInitiator {
 			List<FieldAndRequirement> headerFields,
 			List<FieldAndRequirement> trailerFields,
 			Map<String,Channel> sessions,
-			IQueueFactory<String> queueFactory) {
+			IQueueFactory<String> queueFactory, 
+			ChannelHandler[] channelHandlers) {
 		super();
 		this.version = version;
 		this.senderCompID = senderCompID;
@@ -68,34 +73,19 @@ final public class FIXInitiator {
 		this.trailerFields = trailerFields;
 		this.sessions = sessions;
 		this.queueFactory = queueFactory;
+		this.channelHandlers = channelHandlers;
 	}
 	
 	public void logOn(final Map<String,String> logon){
+
 		final ClientSocketChannelFactory cf = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
 		final ClientBootstrap client = new ClientBootstrap(cf);
 		client.setPipelineFactory(new FIXInitiatorPipelineFactory(
 				headerFields, 
 				trailerFields,
 				sessions,
-				queueFactory,
-				new ChannelUpstreamHandler() {
-					
-					@SuppressWarnings("unchecked")
-					@Override
-					public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-						if(e instanceof MessageEvent){
-							for(IMessageCallback cb : listeners){
-								cb.onMsg((Map<String,String>) ((MessageEvent)e).getMessage());
-							}
-						}
-						else if(e instanceof ExceptionEvent){
-							for(IMessageCallback cb : listeners){
-								cb.onException(((ExceptionEvent)e).getCause());
-							}
-						}
-						
-					}
-				},isDebugOn));
+				queueFactory,isDebugOn,
+				ObjectArrays.concat(channelHandlers, new MessageBroadcaster(listeners))));
 		final ChannelFuture channelFut = client.connect(new InetSocketAddress(remoteAddress, remotePort));
 		
 		channelFut.addListener(new ChannelFutureListener() {
@@ -208,6 +198,31 @@ final public class FIXInitiator {
 		return new Builder(version, senderCompID, targetCompID, remoteAddress, remotePort);
 	}
 
+	private static final class MessageBroadcaster implements ChannelUpstreamHandler {
+
+		private List<IMessageCallback> listeners;
+
+		public MessageBroadcaster(List<IMessageCallback> listeners) {
+			this.listeners = listeners;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+			if(e instanceof MessageEvent){
+				for(IMessageCallback cb : listeners){
+					cb.onMsg((Map<String,String>) ((MessageEvent)e).getMessage());
+				}
+			}
+			else if(e instanceof ExceptionEvent){
+				for(IMessageCallback cb : listeners){
+					cb.onException(((ExceptionEvent)e).getCause());
+				}
+			}
+			
+		}
+	}
+
 	public static class Builder{
 		private final String version;
 		private final String senderCompID;
@@ -225,6 +240,8 @@ final public class FIXInitiator {
 		private Map<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
 		private IQueueFactory<String> queueFactory = new SimpleQueueFactory<String>();
 		
+		private ChannelHandler[] channelHandlers = new ChannelHandler[0];
+		
 		public Builder(String version, String senderCompID,String targetCompID, String remoteAddress, int remotePort) {
 			super();
 			this.version = version;
@@ -232,6 +249,11 @@ final public class FIXInitiator {
 			this.targetCompID = targetCompID;
 			this.remoteAddress = remoteAddress;
 			this.remotePort = remotePort;
+		}
+		
+		public Builder withAdditionalHandlers(ChannelHandler ... handlers){
+			channelHandlers = handlers;
+			return this;
 		}
 		
 		public Builder withSessionStoreFactory(Map<String,Channel> sessions){
@@ -272,7 +294,8 @@ final public class FIXInitiator {
 					headerFields, 
 					trailerFields,
 					sessions,
-					queueFactory);
+					queueFactory,
+					channelHandlers);
 		}
 		
 		
