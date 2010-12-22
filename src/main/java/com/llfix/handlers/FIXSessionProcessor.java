@@ -43,8 +43,8 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 	private final ILogonManager logonManager;
 	private final boolean isInitiator;
 
-    private long outgoingSeqNum = 1l;
-    private long incomingSeqNum = 1l;
+    private long outgoingSeqNum = 1L;
+    private long incomingSeqNum = 1L;
     private boolean loggedIn = false;
     private boolean resendRequested = false;
     private AtomicBoolean isResending = new AtomicBoolean(false);
