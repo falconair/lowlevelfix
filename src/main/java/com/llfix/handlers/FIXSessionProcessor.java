@@ -341,7 +341,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
                 //Missing messages, write resend request and don't process any more messages
                 //until the resend request is processed
                 //set flag signifying "waiting for resend"
-                if (resendRequested != true) {
+                if (!resendRequested) {
                 	final Map<String,String> outfixmap = new LinkedHashMap<String, String>();
             		outfixmap.put("8", fixVersion);
             		outfixmap.put("56", senderCompID);

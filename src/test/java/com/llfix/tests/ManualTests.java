@@ -27,7 +27,7 @@ public class ManualTests {
 			public void run() {
 				fix.logOff();
 			}
-		}, 30l, TimeUnit.SECONDS);
+		}, 30L, TimeUnit.SECONDS);
 		
 		System.in.read();
 	}
@@ -45,7 +45,7 @@ public class ManualTests {
 			public void run() {
 				fix.logOff("SENDER","TIMETOGO");
 			}
-		}, 30l, TimeUnit.SECONDS);
+		}, 30L, TimeUnit.SECONDS);
 
 		System.in.read();
 	}
