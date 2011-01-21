@@ -2,6 +2,7 @@ package com.llfix.api;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,7 @@ import com.llfix.FIXInitiatorPipelineFactory;
 import com.llfix.IMessageCallback;
 import com.llfix.IQueueFactory;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.SimpleQueueFactory;
+import com.llfix.util.MemoryQueueFactory;
 
 final public class FIXInitiator {
 
@@ -85,6 +86,8 @@ final public class FIXInitiator {
 				trailerFields,
 				sessions,
 				queueFactory,isDebugOn,
+				senderCompID,
+				targetCompID,
 				ObjectArrays.concat(channelHandlers, new MessageBroadcaster(listeners))));
 		final ChannelFuture channelFut = client.connect(new InetSocketAddress(remoteAddress, remotePort));
 		
@@ -174,6 +177,10 @@ final public class FIXInitiator {
 	public int getRemotePort() {
 		return remotePort;
 	}
+	
+	public Iterator<String> getAllMsgsFromStorage() throws Exception{
+		return queueFactory.getQueue(getSenderCompID()+"-"+getTargetCompID()).iterator();
+	}
 
 
 
@@ -238,7 +245,7 @@ final public class FIXInitiator {
 		private List<FieldAndRequirement> trailerFields = new ArrayList<FieldAndRequirement>();
 		
 		private Map<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
-		private IQueueFactory<String> queueFactory = new SimpleQueueFactory<String>();
+		private IQueueFactory<String> queueFactory = new MemoryQueueFactory<String>();
 		
 		private ChannelHandler[] channelHandlers = new ChannelHandler[0];
 		

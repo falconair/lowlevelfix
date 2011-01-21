@@ -34,7 +34,7 @@ public class ManualTests {
 	
 	@Test
 	public void acceptorTest() throws IOException{
-		final FIXAcceptor fix = FIXAcceptor.Builder(5555)
+		final FIXAcceptor fix = FIXAcceptor.Builder("TARGET",5555)
 			.withDebugStatus(true)
 			.withMsgStoreFactory(new DiskQueueFactory("data")).build();
 		fix.startListening();

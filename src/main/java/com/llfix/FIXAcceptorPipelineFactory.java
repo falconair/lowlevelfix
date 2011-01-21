@@ -20,7 +20,7 @@ import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.handlers.LogHandler;
 import com.llfix.util.DefaultLogonManager;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.SimpleQueueFactory;
+import com.llfix.util.MemoryQueueFactory;
 
 
 public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
@@ -35,10 +35,11 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
 
     public FIXAcceptorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
-            final List<FieldAndRequirement> trailerFields){
-        this(headerFields,trailerFields,true,new DefaultLogonManager(),
+            final List<FieldAndRequirement> trailerFields,
+            final String compID){
+        this(headerFields,trailerFields,true,new DefaultLogonManager(compID),
         		new ConcurrentHashMap<String, Channel>(),
-        		new SimpleQueueFactory<String>(),
+        		new MemoryQueueFactory<String>(),
         		new SimpleChannelUpstreamHandler());
     }
     

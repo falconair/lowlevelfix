@@ -20,7 +20,7 @@ import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.handlers.LogHandler;
 import com.llfix.util.DefaultLogonManager;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.SimpleQueueFactory;
+import com.llfix.util.MemoryQueueFactory;
 
 
 public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
@@ -32,15 +32,23 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
 	private final Map<String,Channel> sessions;
 	private final IQueueFactory<String> queueFactory;
 	
-	private final static ILogonManager logOnManager = new DefaultLogonManager();
+	private final ILogonManager logOnManager;
 
 
     public FIXInitiatorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
-            final List<FieldAndRequirement> trailerFields){
-    	this(headerFields,trailerFields, 
+            final List<FieldAndRequirement> trailerFields,
+            final String senderCompID,
+            final String targetCompID){
+    	
+    	this(
+    			headerFields,
+    			trailerFields, 
     			new ConcurrentHashMap<String, Channel>(), 
-    			new SimpleQueueFactory<String>(), false, 
+    			new MemoryQueueFactory<String>(), 
+    			false,
+    			senderCompID,
+    			targetCompID,
     			new SimpleChannelUpstreamHandler());
     }
 
@@ -50,6 +58,8 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
             final Map<String,Channel> sessions,
             final IQueueFactory<String> queueFactory,
             final boolean isDebugOn,
+            final String senderCompID,
+            final String targetCompID,
             final ChannelHandler ... upstreamHandler){
         this.headerFields = headerFields;
         this.trailerFields = trailerFields;
@@ -57,6 +67,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
         this.isDebugOn = isDebugOn;
         this.sessions = sessions;
         this.queueFactory = queueFactory;
+        this.logOnManager = new DefaultLogonManager(senderCompID);
     }
     
     private static StringDecoder STRINGDECODER = new StringDecoder();

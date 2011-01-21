@@ -4,11 +4,11 @@ import com.llfix.IQueueFactory;
 import com.llfix.ISimpleQueue;
 
 
-public class SimpleQueueFactory<T> implements IQueueFactory<T> {
+public class MemoryQueueFactory<T> implements IQueueFactory<T> {
 
 	@Override
 	public ISimpleQueue<T> getQueue(String name) {
-		return new SimpleQueue<T>();
+		return new MemoryQueue<T>();
 	}
 
 	@Override

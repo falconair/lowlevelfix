@@ -2,6 +2,7 @@ package com.llfix.api;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,7 @@ import com.llfix.IQueueFactory;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.util.DefaultLogonManager;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.SimpleQueueFactory;
+import com.llfix.util.MemoryQueueFactory;
 
 final public class FIXAcceptor {
 	
@@ -112,6 +113,10 @@ final public class FIXAcceptor {
 	public int getRemotePort() {
 		return remotePort;
 	}
+	
+	public Iterator<String> getAllMsgsFromStorage(String targetCompID) throws Exception{
+		return queueFactory.getQueue(targetCompID).iterator();
+	}
 
 
 
@@ -126,8 +131,8 @@ final public class FIXAcceptor {
 	}
 
 
-	public static Builder Builder(int remotePort){
-		return new Builder(remotePort);
+	public static Builder Builder(String compID, int remotePort){
+		return new Builder(compID, remotePort);
 	}
 
 	private static final class MessageBroadcaster implements ChannelUpstreamHandler {
@@ -157,22 +162,26 @@ final public class FIXAcceptor {
 	public static class Builder{
 		
 		private final int remotePort;
+		private final String compID;
 		
 		private boolean isDebugOn = false;
 		
 		private List<FieldAndRequirement> headerFields = new ArrayList<FieldAndRequirement>();
 		private List<FieldAndRequirement> trailerFields = new ArrayList<FieldAndRequirement>();
 		
-		private ILogonManager logonManager = new DefaultLogonManager();
+		private ILogonManager logonManager = null;
 		
 		private Map<String,Channel> sessions= new ConcurrentHashMap<String, Channel>();
-		private IQueueFactory<String> queueFactory = new SimpleQueueFactory<String>();
+		private IQueueFactory<String> queueFactory = new MemoryQueueFactory<String>();
 		
 		private ChannelHandler[] channelHandlers = new ChannelHandler[0];
+
 		
-		public Builder(int remotePort) {
+		public Builder(final String compID, int remotePort) {
 			super();
+			this.compID = compID;
 			this.remotePort = remotePort;
+			this.logonManager = new DefaultLogonManager(compID);
 		}
 		
 		public Builder withSessionStoreFactory(Map<String,Channel> sessions){

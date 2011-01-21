@@ -17,7 +17,7 @@ import com.llfix.handlers.FIXFrameDecoder;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.util.DefaultLogonManager;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.SimpleQueueFactory;
+import com.llfix.util.MemoryQueueFactory;
 
 public class LowLevelFIXTests {
 	
@@ -28,9 +28,9 @@ public class LowLevelFIXTests {
 						true,
 						new ArrayList<FieldAndRequirement>(),
 						new ArrayList<FieldAndRequirement>(),
-						new DefaultLogonManager(),
+						new DefaultLogonManager("SENDERCOMPID"),
 						new ConcurrentHashMap<String, Channel>(),
-						new SimpleQueueFactory<String>()));
+						new MemoryQueueFactory<String>()));
 		
 		final Map<String,String> fix = new HashMap<String, String>();
 		fix.put("8", "FIX.4.2");
