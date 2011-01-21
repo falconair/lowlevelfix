@@ -488,6 +488,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 			throws Exception {
 		final String fixstr = encodeAndCalcChksmCalcBodyLen(msg, headerFields, trailerFields);
 		msgStore.offer(fixstr);
+		outgoingCallback.onMsg(msg);
 		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
 	}
 
