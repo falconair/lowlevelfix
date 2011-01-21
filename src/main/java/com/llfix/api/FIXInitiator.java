@@ -49,6 +49,7 @@ final public class FIXInitiator {
 	private final IQueueFactory<String> queueFactory;
 	
 	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
+	private final IMessageCallback outgoingCallback;
 
 	private final ChannelHandler[] channelHandlers;
 
@@ -61,6 +62,7 @@ final public class FIXInitiator {
 			List<FieldAndRequirement> trailerFields,
 			Map<String,Channel> sessions,
 			IQueueFactory<String> queueFactory, 
+			IMessageCallback outgoingCallback,
 			ChannelHandler[] channelHandlers) {
 		super();
 		this.version = version;
@@ -74,6 +76,7 @@ final public class FIXInitiator {
 		this.trailerFields = trailerFields;
 		this.sessions = sessions;
 		this.queueFactory = queueFactory;
+		this.outgoingCallback = outgoingCallback;
 		this.channelHandlers = channelHandlers;
 	}
 	
@@ -88,6 +91,7 @@ final public class FIXInitiator {
 				queueFactory,isDebugOn,
 				senderCompID,
 				targetCompID,
+				outgoingCallback,
 				ObjectArrays.concat(channelHandlers, new MessageBroadcaster(listeners))));
 		final ChannelFuture channelFut = client.connect(new InetSocketAddress(remoteAddress, remotePort));
 		
@@ -248,6 +252,7 @@ final public class FIXInitiator {
 		private IQueueFactory<String> queueFactory = new MemoryQueueFactory<String>();
 		
 		private ChannelHandler[] channelHandlers = new ChannelHandler[0];
+		private IMessageCallback outgoingCallback;
 		
 		public Builder(String version, String senderCompID,String targetCompID, String remoteAddress, int remotePort) {
 			super();
@@ -283,6 +288,11 @@ final public class FIXInitiator {
 			return this;
 		}
 		
+		public Builder withOutgoingMsgCallback(IMessageCallback outgoingCallback){
+			this.outgoingCallback = outgoingCallback;
+			return this;
+		}
+		
 		public Builder withFieldRequirements(List<FieldAndRequirement> headerFields, List<FieldAndRequirement> trailerFields){
 			this.headerFields = headerFields;
 			this.trailerFields = trailerFields;
@@ -302,6 +312,7 @@ final public class FIXInitiator {
 					trailerFields,
 					sessions,
 					queueFactory,
+					outgoingCallback,
 					channelHandlers);
 		}
 		

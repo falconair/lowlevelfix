@@ -8,7 +8,6 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.string.StringDecoder;
 import org.jboss.netty.handler.codec.string.StringEncoder;
@@ -33,6 +32,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
 	private final IQueueFactory<String> queueFactory;
 	
 	private final ILogonManager logOnManager;
+	private final IMessageCallback outgoingCallback;
 
 
     public FIXInitiatorPipelineFactory(
@@ -49,6 +49,15 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
     			false,
     			senderCompID,
     			targetCompID,
+    			new IMessageCallback(){
+
+					@Override
+					public void onException(Throwable t) {
+					}
+
+					@Override
+					public void onMsg(Map<String, String> msg) {
+					}},
     			new SimpleChannelUpstreamHandler());
     }
 
@@ -60,6 +69,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
             final boolean isDebugOn,
             final String senderCompID,
             final String targetCompID,
+            final IMessageCallback outgoingCallback,
             final ChannelHandler ... upstreamHandler){
         this.headerFields = headerFields;
         this.trailerFields = trailerFields;
@@ -67,6 +77,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
         this.isDebugOn = isDebugOn;
         this.sessions = sessions;
         this.queueFactory = queueFactory;
+        this.outgoingCallback = outgoingCallback;
         this.logOnManager = new DefaultLogonManager(senderCompID);
     }
     
@@ -84,7 +95,7 @@ public class FIXInitiatorPipelineFactory implements ChannelPipelineFactory{
                 STRINGDECODER,//Incoming
                 STRINGENCODER,//Outgoing
                 isDebugOn ? LOGHANDLER : NOOPHANDLER,
-                new FIXSessionProcessor(true,headerFields, trailerFields,logOnManager , sessions, queueFactory)};
+                new FIXSessionProcessor(true,headerFields, trailerFields,logOnManager , sessions, queueFactory, outgoingCallback)};
         final ChannelHandler[] allHandlers = new ChannelHandler[handlers.length + upstreamHandlers.length];
         
         for(int i = 0; i < handlers.length; i++) allHandlers[i] = handlers[i];

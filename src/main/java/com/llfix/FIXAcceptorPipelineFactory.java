@@ -32,6 +32,7 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
 	private final Map<String,Channel> sessions;
 	private final IQueueFactory<String> queueFactory;
 	private final boolean isDebugOn;
+	private final IMessageCallback outgoingCallback;
 
     public FIXAcceptorPipelineFactory(
             final List<FieldAndRequirement> headerFields,
@@ -40,6 +41,15 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
         this(headerFields,trailerFields,true,new DefaultLogonManager(compID),
         		new ConcurrentHashMap<String, Channel>(),
         		new MemoryQueueFactory<String>(),
+        		new IMessageCallback(){
+
+					@Override
+					public void onException(Throwable t) {
+					}
+
+					@Override
+					public void onMsg(Map<String, String> msg) {
+					}},
         		new SimpleChannelUpstreamHandler());
     }
     
@@ -50,6 +60,7 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
             final ILogonManager logonManager,
             final Map<String,Channel> sessions,
             final IQueueFactory<String> queueFactory,
+            final IMessageCallback outgoingCallback,
             final ChannelHandler ... upstreamHandler){
         this.headerFields = headerFields;
         this.trailerFields = trailerFields;
@@ -58,6 +69,7 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
         this.isDebugOn = isDebugOn;
         this.sessions = sessions;
         this.queueFactory = queueFactory;
+        this.outgoingCallback = outgoingCallback;
     }
     
     private static StringDecoder STRINGDECODER = new StringDecoder();
@@ -88,7 +100,7 @@ public class FIXAcceptorPipelineFactory implements ChannelPipelineFactory{
                 STRINGDECODER,//Incoming
                 STRINGENCODER,//Outgoing
                 isDebugOn ? LOGHANDLER : NOOPHANDLER,
-                new FIXSessionProcessor(true,headerFields, trailerFields,logonManager , sessions, queueFactory)};
+                new FIXSessionProcessor(true,headerFields, trailerFields,logonManager , sessions, queueFactory, outgoingCallback)};
         final ChannelHandler[] allHandlers = new ChannelHandler[handlers.length + upstreamHandlers.length];
         
         for(int i = 0; i < handlers.length; i++) allHandlers[i] = handlers[i];

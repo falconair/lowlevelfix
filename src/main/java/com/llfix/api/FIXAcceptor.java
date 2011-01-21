@@ -51,6 +51,8 @@ final public class FIXAcceptor {
 	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
 
 	private final ChannelHandler[] channelHandlers;
+
+	private final IMessageCallback outgoingCallback;
 	
 	private FIXAcceptor(int remotePort, boolean isDebugOn,
 			List<FieldAndRequirement> headerFields,
@@ -58,6 +60,7 @@ final public class FIXAcceptor {
 			Map<String,Channel> sessions,
 			IQueueFactory<String> queueFactory,
 			ILogonManager logonManager,
+			IMessageCallback outgoingCallback,
 			ChannelHandler ... channelHandlers) {
 		super();
 		this.remotePort = remotePort;
@@ -67,6 +70,7 @@ final public class FIXAcceptor {
 		this.sessions = sessions;
 		this.queueFactory = queueFactory;
 		this.logonManager = logonManager;
+		this.outgoingCallback = outgoingCallback;
 		this.channelHandlers = channelHandlers;
 	}
 	
@@ -80,6 +84,7 @@ final public class FIXAcceptor {
 				logonManager,
 				sessions,
 				queueFactory,
+				outgoingCallback,
 				ObjectArrays.concat(channelHandlers, new MessageBroadcaster(listeners))));
 		server.bind(new InetSocketAddress("localhost", remotePort));
 	
@@ -175,6 +180,7 @@ final public class FIXAcceptor {
 		private IQueueFactory<String> queueFactory = new MemoryQueueFactory<String>();
 		
 		private ChannelHandler[] channelHandlers = new ChannelHandler[0];
+		private IMessageCallback outgoingCallback;
 
 		
 		public Builder(final String compID, int remotePort) {
@@ -203,6 +209,11 @@ final public class FIXAcceptor {
 			this.isDebugOn = isOn;
 			return this;
 		}
+		
+		public Builder withOutgoingMsgCallback(IMessageCallback outgoingCallback){
+			this.outgoingCallback = outgoingCallback;
+			return this;
+		}
 				
 		public Builder withFieldRequirements(List<FieldAndRequirement> headerFields, List<FieldAndRequirement> trailerFields){
 			this.headerFields = headerFields;
@@ -224,6 +235,7 @@ final public class FIXAcceptor {
 					sessions,
 					queueFactory,
 					logonManager,
+					outgoingCallback,
 					channelHandlers);
 		}
 		

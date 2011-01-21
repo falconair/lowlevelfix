@@ -26,6 +26,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.llfix.*;
 import com.llfix.ILogonManager;
 import com.llfix.IQueueFactory;
 import com.llfix.ISimpleQueue;
@@ -55,6 +56,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 	private int heartbeatDuration;
 
 	private final IQueueFactory<String> qFactory;
+	private final IMessageCallback outgoingCallback;
 
 	private Map<String,Channel> sessions;
 	private ISimpleQueue<String> msgStore;
@@ -67,8 +69,9 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 			final List<FieldAndRequirement> headerFields,
 			final List<FieldAndRequirement> trailerFields,
 			final ILogonManager logonManager,
-			final Map<String, Channel> sessions,
-			final IQueueFactory<String> qFactory){
+			final Map<String, Channel> sessions,  
+			final IQueueFactory<String> qFactory,
+			final IMessageCallback callback){
 
 		this.headerFields = new ArrayList<FieldAndRequirement>(headerFields);//not a simple assignment because this list is mutated below
 		this.trailerFields = trailerFields;
@@ -76,6 +79,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 		this.isInitiator = isInitiator;
 		this.sessions= sessions;
 		this.qFactory = qFactory;
+		this.outgoingCallback = callback;
 
 		//Tags 34,35 are required, even the client doesn't think they are
 		this.headerFields.add(new FieldAndRequirement("34", true));
@@ -98,10 +102,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					fix.put("34", Long.toString(outgoingSeqNum));
 					outgoingSeqNum++;
 
-					final String fixstr = encodeAndCalcChksmCalcBodyLen(fix, headerFields, trailerFields);
-
-					msgStore.offer(fixstr);
-					Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+					write(ctx, fix);
 				}
 			}
 			else{
@@ -126,10 +127,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					fix.put("34", Long.toString(outgoingSeqNum));
 					outgoingSeqNum++;
 
-					final String fixstr = encodeAndCalcChksmCalcBodyLen(fix, headerFields, trailerFields);
-
-					msgStore.offer(fixstr);
-					Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);				
+					write(ctx, fix);				
 				}
 				else{
 					logger.error(senderCompID+"->"+targetCompID+":Attempt to send a non-logon message, while not logged in: "+fix);
@@ -180,10 +178,9 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 						rej.put("373", "1");
 						rej.put("58", String.format("Tag %s is required but missing", k));
 						rej.put("34", Long.toString(outgoingSeqNum));
+						write(ctx, rej);
 						outgoingSeqNum++;
-						final String fixstr = encodeAndCalcChksmCalcBodyLen(rej, headerFields, trailerFields);
-						msgStore.offer(fixstr);
-						Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+
 					} else {
 						ctx.getChannel().close();
 						return;
@@ -208,9 +205,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 						rej.put("58", String.format("Tag %s is required but missing", k));
 						rej.put("34", Long.toString(outgoingSeqNum));
 						outgoingSeqNum++;
-						final String fixstr = encodeAndCalcChksmCalcBodyLen(rej, headerFields, trailerFields);
-						msgStore.offer(fixstr);
-						Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+						write(ctx, rej);
 					} else {
 						ctx.getChannel().close();
 						return;
@@ -279,9 +274,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 
 					sessions.put(senderCompID, ctx.getChannel());
 
-					final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
-					msgStore.offer(fixstr);
-					Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+					write(ctx, outfixmap);
 				}
 
 				logger.info("{} logged on from {} with fix {}", new String[]{targetCompID, ctx.getChannel().getRemoteAddress().toString(),fixVersion});
@@ -311,9 +304,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					outfixmap.put("45", fix.get("34")); //RefSeqNum
 					outfixmap.put("58", error);
 
-					final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
-					msgStore.offer(fixstr);
-					Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+					write(ctx, outfixmap);
 				} else {
 					incomingSeqNum = resetSeqNo;
 				}
@@ -353,9 +344,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					outfixmap.put("7", Long.toString(incomingSeqNum)); //BeginSeqNo
 					outfixmap.put("16", "0"); //EndSeqno
 
-					final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
-					msgStore.offer(fixstr);
-					Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+					write(ctx, outfixmap);
 					resendRequested = true;
 				}
 			}
@@ -380,9 +369,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				outfixmap.put("45", fix.get("34")); //RefSeqNum
 				outfixmap.put("58", error);
 
-				final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
-				msgStore.offer(fixstr);
-				Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+				write(ctx, outfixmap);
 			}
 
 
@@ -410,9 +397,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				outfixmap.put("34", Long.toString(outgoingSeqNum));
 				outgoingSeqNum++;
 
-				final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
-				msgStore.offer(fixstr);
-				Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+				write(ctx, outfixmap);
 			} else if (msgType.equals("2")) {//ResendRequest
 				isResending.set(true);
 				final String startSeqStr = fix.get("7");
@@ -434,9 +419,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 						newfix.put("43", "Y");
 						newfix.put("122", oldfix.get("52"));
 
-						final String fixstr = encodeAndCalcChksmCalcBodyLen(newfix, headerFields, trailerFields);
-						msgStore.offer(fixstr);
-						Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+						write(ctx, newfix);
 					}
 					isResending.set(false);
 				}
@@ -455,9 +438,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				outfixmap.put("34", Long.toString(outgoingSeqNum));
 				outgoingSeqNum++;
 
-				final String fixstr = encodeAndCalcChksmCalcBodyLen(outfixmap, headerFields, trailerFields);
-				msgStore.offer(fixstr);
-				Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+				write(ctx, outfixmap);
 
 				loggedIn = false;
 				if(!isInitiator){
@@ -494,15 +475,20 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				fixmap.put("34", Long.toString(outgoingSeqNum));
 				outgoingSeqNum++;
 
-				final String fixstr = encodeAndCalcChksmCalcBodyLen(fixmap, headerFields, trailerFields);
-				msgStore.offer(fixstr);
-				Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
+				write(ctx, fixmap);
 			}
 		}
 		else{
 			super.handleUpstream(ctx, event);
 		}
 
+	}
+
+	private void write(ChannelHandlerContext ctx, final Map<String, String> msg)
+			throws Exception {
+		final String fixstr = encodeAndCalcChksmCalcBodyLen(msg, headerFields, trailerFields);
+		msgStore.offer(fixstr);
+		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
 	}
 
 	@Override

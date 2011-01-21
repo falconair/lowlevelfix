@@ -13,6 +13,7 @@ import org.jboss.netty.util.CharsetUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.llfix.IMessageCallback;
 import com.llfix.handlers.FIXFrameDecoder;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.util.DefaultLogonManager;
@@ -30,7 +31,19 @@ public class LowLevelFIXTests {
 						new ArrayList<FieldAndRequirement>(),
 						new DefaultLogonManager("SENDERCOMPID"),
 						new ConcurrentHashMap<String, Channel>(),
-						new MemoryQueueFactory<String>()));
+						new MemoryQueueFactory<String>(),
+						new IMessageCallback() {
+							
+							@Override
+							public void onMsg(Map<String, String> msg) {
+								
+							}
+							
+							@Override
+							public void onException(Throwable t) {
+								
+							}
+						}));
 		
 		final Map<String,String> fix = new HashMap<String, String>();
 		fix.put("8", "FIX.4.2");
