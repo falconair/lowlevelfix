@@ -74,12 +74,6 @@
 			<version>1.6.2</version>
 		</dependency>
 		<dependency>
-			<groupId>org.jboss.netty</groupId>
-			<artifactId>netty</artifactId>
-			<version>3.2.3.Final</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>r07</version>

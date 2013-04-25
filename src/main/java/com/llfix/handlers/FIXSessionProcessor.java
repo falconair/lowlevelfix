@@ -1,5 +1,7 @@
 package com.llfix.handlers;
 
+import java.net.InetAddress;
+import java.net.SocketAddress;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,18 +9,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelEvent;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
-import org.jboss.netty.handler.timeout.IdleState;
-import org.jboss.netty.handler.timeout.IdleStateEvent;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -27,20 +20,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.llfix.*;
-import com.llfix.ILogonManager;
-import com.llfix.IQueueFactory;
-import com.llfix.ISimpleQueue;
 import com.llfix.util.FieldAndRequirement;
 
-public class FIXSessionProcessor extends SimpleChannelHandler {
+public class FIXSessionProcessor {
 
 	final static Logger logger = LoggerFactory.getLogger(FIXSessionProcessor.class);
 	final static char SOH_CHAR = '\001';
 	final static DateTimeFormatter UTCTimeStampFormat = DateTimeFormat.forPattern("yyyyMMdd-HH:mm:ss.SSS");
 	final static DateTimeZone UTCTimeZone = DateTimeZone.forOffsetHours(0);
 
-	private final List<FieldAndRequirement> headerFields;
-	private final List<FieldAndRequirement> trailerFields;
 	private final ILogonManager logonManager;
 	private final boolean isInitiator;
 
@@ -57,8 +45,9 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 
 	private final IQueueFactory<String> qFactory;
 	private final IMessageCallback outgoingCallback;
-
-	private Map<String,Channel> sessions;
+	private final IMessageCallback incomingCallback;
+	private final SocketAddress remoteAddress;
+	private Set<String> sessions;
 	private ISimpleQueue<String> msgStore;
 
 
@@ -66,32 +55,25 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 
 	public FIXSessionProcessor(
 			final boolean isInitiator,
-			final List<FieldAndRequirement> headerFields,
-			final List<FieldAndRequirement> trailerFields,
 			final ILogonManager logonManager,
-			final Map<String, Channel> sessions,  
+			final Set<String> sessions,
 			final IQueueFactory<String> qFactory,
-			final IMessageCallback callback){
+			final IMessageCallback outgoingCallback,
+			final IMessageCallback incomingCallback,
+			final SocketAddress remoteAddress){
 
-		this.headerFields = new ArrayList<FieldAndRequirement>(headerFields);//not a simple assignment because this list is mutated below
-		this.trailerFields = trailerFields;
 		this.logonManager = logonManager;
 		this.isInitiator = isInitiator;
 		this.sessions= sessions;
 		this.qFactory = qFactory;
-		this.outgoingCallback = callback;
+		this.outgoingCallback = outgoingCallback;
+		this.incomingCallback = incomingCallback;
+		this.remoteAddress = remoteAddress;
 
-		//Tags 34,35 are required, even the client doesn't think they are
-		this.headerFields.add(new FieldAndRequirement("34", true));
-		this.headerFields.add(new FieldAndRequirement("35", true));
 	}
+	
+	public void processOutgoing(Map<String,String> fix) throws Exception {
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
-		if(event instanceof MessageEvent && ((MessageEvent)event).getMessage() instanceof Map<?,?>){
-
-			final Map<String,String> fix = (Map<String,String>) ((MessageEvent)event).getMessage();
 
 			if(loggedIn){
 
@@ -102,7 +84,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					fix.put("34", Long.toString(outgoingSeqNum));
 					outgoingSeqNum++;
 
-					write(ctx, fix);
+					write(fix);
 				}
 			}
 			else{
@@ -127,26 +109,18 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					fix.put("34", Long.toString(outgoingSeqNum));
 					outgoingSeqNum++;
 
-					write(ctx, fix);				
+					write(fix);				
 				}
 				else{
 					logger.error(senderCompID+"->"+targetCompID+":Attempt to send a non-logon message, while not logged in: "+fix);
 				}
 				//TODO: send exception to sender
 			}
-		}
-		else{
-			super.handleDownstream(ctx,event);
-		}
 
 	}
 
-	@Override
-	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
+	public void processIncoming(String msg) throws Exception {
 
-
-		if(event instanceof MessageEvent && ((MessageEvent)event).getMessage() instanceof String){
-			final String msg = (String) ((MessageEvent) event).getMessage();
 
 			//====Step 2: Validate message====
 			final int _length = msg.length();
@@ -163,9 +137,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 
 			//====Step 4: Confirm all required fields are available====
 			//Check required headers
-			for (FieldAndRequirement far : headerFields) {
-				if(!far.isRequired()) continue;
-				String k = far.getTag();
+			for (String k : new String[]{"34","35"}) {
 				if (!fix.containsKey(k)) { //Does not contain a required field
 					logger.warn(String.format("%s->%s: Tag %s is required but missing in incoming message: %s",senderCompID,targetCompID, k, fix));
 					if (loggedIn) {
@@ -178,20 +150,18 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 						rej.put("373", "1");
 						rej.put("58", String.format("Tag %s is required but missing", k));
 						rej.put("34", Long.toString(outgoingSeqNum));
-						write(ctx, rej);
+						write(rej);
 						outgoingSeqNum++;
 
 					} else {
-						ctx.getChannel().close();
+						closeSession();
 						return;
 					}
 				}
 			}
 
 			//Check required trailers
-			for (FieldAndRequirement far : trailerFields) {
-				if(!far.isRequired()) continue;
-				String k = far.getTag();
+			for (String k : new String[]{"10"}) {
 				if (!fix.containsKey(k)) { //Does not contain a required field
 					logger.warn(String.format("%s->%s: Tag %s is required but missing in incoming message: %s",senderCompID,targetCompID, k, fix));
 					if (loggedIn) {
@@ -205,9 +175,9 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 						rej.put("58", String.format("Tag %s is required but missing", k));
 						rej.put("34", Long.toString(outgoingSeqNum));
 						outgoingSeqNum++;
-						write(ctx, rej);
+						write(rej);
 					} else {
-						ctx.getChannel().close();
+						closeSession();
 						return;
 					}
 				}
@@ -219,7 +189,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 
 			if (!loggedIn && !msgType.equals("A")) {//Not logged in and received a non-login message
 				logger.error("Expected logon message, but received: {}", fix);
-				ctx.getChannel().close();
+				closeSession();
 				return;
 			}
 
@@ -229,16 +199,16 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				targetCompID = fix.get("56");
 				heartbeatDuration = Integer.parseInt(fix.get("108"));
 
-				if(!isInitiator && sessions.containsKey(senderCompID)){
+				if(!isInitiator && sessions.contains(senderCompID)){
 					logger.error("Multiple logons not allowed for sender comp ID {}: {}",senderCompID, fix);
-					ctx.getChannel().close();
+					closeSession();
 					return;
 				}
 
 
-				if(!logonManager.allowLogon(ctx.getChannel().getRemoteAddress(),fix)){
+				if(!logonManager.allowLogon(remoteAddress,fix)){
 					logger.error(String.format("%s->%s: Logon not allowed: %s",senderCompID, targetCompID, fix));
-					ctx.getChannel().close();
+					closeSession();
 					return;
 				}
 
@@ -272,12 +242,12 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					outfixmap.put("98", "0"); //EncryptMethod=None
 					outfixmap.put("108", Integer.toString(heartbeatDuration));
 
-					sessions.put(senderCompID, ctx.getChannel());
+					sessions.add(senderCompID);
 
-					write(ctx, outfixmap);
+					write(outfixmap);
 				}
 
-				logger.info("{} logged on from {} with fix {}", new String[]{targetCompID, ctx.getChannel().getRemoteAddress().toString(),fixVersion});
+				logger.info("{} logged on from {} with fix {}", new String[]{targetCompID, remoteAddress.toString(),fixVersion});
 
 			}
 
@@ -304,7 +274,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					outfixmap.put("45", fix.get("34")); //RefSeqNum
 					outfixmap.put("58", error);
 
-					write(ctx, outfixmap);
+					write(outfixmap);
 				} else {
 					incomingSeqNum = resetSeqNo;
 				}
@@ -325,7 +295,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					return; //TODO: how should posdups be handled?
 				} else {
 					logger.warn(String.format("%s->%s: Incoming sequence number lower than expected. No way to recover message: %s",senderCompID,targetCompID, fix));
-					ctx.getChannel().close();
+					closeSession();
 					return;
 				}
 			} else if (msgSeqNum > incomingSeqNum) {
@@ -344,7 +314,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 					outfixmap.put("7", Long.toString(incomingSeqNum)); //BeginSeqNo
 					outfixmap.put("16", "0"); //EndSeqno
 
-					write(ctx, outfixmap);
+					write(outfixmap);
 					resendRequested = true;
 				}
 			}
@@ -369,7 +339,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				outfixmap.put("45", fix.get("34")); //RefSeqNum
 				outfixmap.put("58", error);
 
-				write(ctx, outfixmap);
+				write(outfixmap);
 			}
 
 
@@ -397,7 +367,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				outfixmap.put("34", Long.toString(outgoingSeqNum));
 				outgoingSeqNum++;
 
-				write(ctx, outfixmap);
+				write(outfixmap);
 			} else if (msgType.equals("2")) {//ResendRequest
 				isResending.set(true);
 				final String startSeqStr = fix.get("7");
@@ -419,7 +389,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 						newfix.put("43", "Y");
 						newfix.put("122", oldfix.get("52"));
 
-						write(ctx, newfix);
+						write(newfix);
 					}
 					isResending.set(false);
 				}
@@ -438,7 +408,7 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				outfixmap.put("34", Long.toString(outgoingSeqNum));
 				outgoingSeqNum++;
 
-				write(ctx, outfixmap);
+				write(outfixmap);
 
 				loggedIn = false;
 				if(!isInitiator){
@@ -446,24 +416,16 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				}
 				else{
 					//If initiator, then after receiving logoff confirm, disconnect
-					ctx.getChannel().disconnect();
+					forceDisconnect();
 				}
 			}
-			//else{//commented out because just send ALL events on, no need to stop here?
-			//Not needed by the session logic, send it on
-			ctx.sendUpstream(event);
-			//}
 
-		}
-		else if(event instanceof IdleStateEvent && ((IdleStateEvent)event).getState() == IdleState.WRITER_IDLE){
+			forwardToApp(fix);
+
+
+		/*if(event instanceof IdleStateEvent && ((IdleStateEvent)event).getState() == IdleState.WRITER_IDLE){
 			long currentTime = System.currentTimeMillis();
 			long lastActivity = ((IdleStateEvent)event).getLastActivityTimeMillis();
-
-			/*logger.debug("Time passed={}, heartbeat duration={}, loggedin={}",
-					new String[]{
-						Long.toString(currentTime-lastActivity),
-						Integer.toString(heartbeatDuration*1000),
-						Boolean.toString(loggedIn)});*/
 
 			if(loggedIn && (currentTime-lastActivity > heartbeatDuration * 1000)){
 				Map<String,String> fixmap = new LinkedHashMap<String, String>();
@@ -475,36 +437,29 @@ public class FIXSessionProcessor extends SimpleChannelHandler {
 				fixmap.put("34", Long.toString(outgoingSeqNum));
 				outgoingSeqNum++;
 
-				write(ctx, fixmap);
+				write(fixmap);
 			}
-		}
-		else{
-			super.handleUpstream(ctx, event);
-		}
-
+		}*/
+	}
+	
+	private void forceDisconnect() {
+		
 	}
 
-	private void write(ChannelHandlerContext ctx, final Map<String, String> msg)
+	private void closeSession(){
+		
+	}
+	
+	private void forwardToApp(Map<String,String> msg){
+		incomingCallback.onMsg(msg);
+	}
+
+	private void write(final Map<String, String> msg)
 			throws Exception {
 		final String fixstr = encodeAndCalcChksmCalcBodyLen(msg, headerFields, trailerFields);
 		msgStore.offer(fixstr);
 		outgoingCallback.onMsg(msg);
-		Channels.write(ctx, Channels.future(ctx.getChannel()), fixstr);
-	}
-
-	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-		logger.warn("FIXSessionProcessor",e.getCause());
-		super.exceptionCaught(ctx, e);
-	}
-
-
-
-	@Override
-	public void channelDisconnected(ChannelHandlerContext ctx,ChannelStateEvent e) throws Exception {
-		sessions.remove(senderCompID);
-		qFactory.returnQueue(senderCompID+"-"+targetCompID);
-		super.channelDisconnected(ctx, e);
+		//Channels.write(Channels.future(ctx.getChannel()), fixstr);
 	}
 
 	@Override
