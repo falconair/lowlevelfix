@@ -1,5 +1,6 @@
 package com.llfix.util;
 
+import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 
@@ -19,7 +20,7 @@ public class DefaultLogonManager implements ILogonManager {
 	}
 
 	@Override
-	public boolean allowLogon(SocketAddress remoteAddress, Map<String, String> logonMessage) {
+	public boolean allowLogon(InetAddress remoteAddress, Map<String, String> logonMessage) {
 		final String targetCompID = logonMessage.get("56");
 		if(targetCompID.equals(senderCompID)) return true;
 

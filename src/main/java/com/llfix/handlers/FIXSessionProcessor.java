@@ -2,6 +2,7 @@ package com.llfix.handlers;
 
 import java.net.InetAddress;
 import java.net.SocketAddress;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,10 +25,14 @@ import com.llfix.util.FieldAndRequirement;
 
 public class FIXSessionProcessor {
 
-	final static Logger logger = LoggerFactory.getLogger(FIXSessionProcessor.class);
-	final static char SOH_CHAR = '\001';
-	final static DateTimeFormatter UTCTimeStampFormat = DateTimeFormat.forPattern("yyyyMMdd-HH:mm:ss.SSS");
-	final static DateTimeZone UTCTimeZone = DateTimeZone.forOffsetHours(0);
+	private final static Logger logger = LoggerFactory.getLogger(FIXSessionProcessor.class);
+	private final static char SOH_CHAR = '\001';
+	private final static DateTimeFormatter UTCTimeStampFormat = DateTimeFormat.forPattern("yyyyMMdd-HH:mm:ss.SSS");
+	private final static DateTimeZone UTCTimeZone = DateTimeZone.forOffsetHours(0);
+    private final static int maxlength = 5;
+
+	
+	private final StringBuilder buffer = new  StringBuilder();
 
 	private final ILogonManager logonManager;
 	private final boolean isInitiator;
@@ -44,13 +49,13 @@ public class FIXSessionProcessor {
 	private int heartbeatDuration;
 
 	private final IQueueFactory<String> qFactory;
-	private final IMessageCallback outgoingCallback;
-	private final IMessageCallback incomingCallback;
-	private final SocketAddress remoteAddress;
+	private final IMessageCallback<Map<String, String>> outgoingCallback;
+	private final IMessageCallback<Map<String, String>> incomingCallback;
+	private final InetAddress remoteAddress;
 	private Set<String> sessions;
 	private ISimpleQueue<String> msgStore;
 
-
+	private final IMessageCallback<String> frameDecoderToMsgProcessor;
 
 
 	public FIXSessionProcessor(
@@ -58,9 +63,9 @@ public class FIXSessionProcessor {
 			final ILogonManager logonManager,
 			final Set<String> sessions,
 			final IQueueFactory<String> qFactory,
-			final IMessageCallback outgoingCallback,
-			final IMessageCallback incomingCallback,
-			final SocketAddress remoteAddress){
+			final IMessageCallback<Map<String, String>> outgoingCallback,
+			final IMessageCallback<Map<String, String>> incomingCallback,
+			final InetAddress remoteAddress){
 
 		this.logonManager = logonManager;
 		this.isInitiator = isInitiator;
@@ -69,6 +74,17 @@ public class FIXSessionProcessor {
 		this.outgoingCallback = outgoingCallback;
 		this.incomingCallback = incomingCallback;
 		this.remoteAddress = remoteAddress;
+		
+		this.frameDecoderToMsgProcessor = new IMessageCallback<String>() {
+			
+			@Override
+			public void onMsg(String msg) {
+				try { processFramDecodedIncoming(msg); } 
+				catch (Exception e) { onException(e); }
+			}
+			
+			@Override public void onException(Throwable t) { t.printStackTrace(); }
+		};
 
 	}
 	
@@ -119,7 +135,77 @@ public class FIXSessionProcessor {
 
 	}
 
-	public void processIncoming(String msg) throws Exception {
+	public void processIncoming(String msg) throws Exception  {
+		//====Step 1: Frame decode message====
+		buffer.append(msg);
+		
+		while(buffer.length() > 0){
+			int bufferConsumedSoFar = frameDecodeFIXMsg(buffer.toString(), frameDecoderToMsgProcessor);
+			buffer.delete(0, bufferConsumedSoFar);
+			
+		}
+
+	}
+
+	/**
+	 * This method is separated out so FIX frame decode logic can be tested is isolation.
+	 * Warning, this method may return null if message can not be parsed
+	 * @param buf
+	 * @param fixFrame 
+	 * @return
+	 * @throws ParseException
+	 * @throws Exception
+	 */
+	protected static int frameDecodeFIXMsg(String fixstring, IMessageCallback<String> fixFrame) throws ParseException, Exception {
+		int charsConsumed = 0;
+		String buf = fixstring;
+		
+		//if at least 13 chars haven't been received, then length field hasn't been received, 
+		//which means we don't have enough data to continue parsing
+		while(buf.length() > 13){
+			
+			final int endOfLength = buf.indexOf(Character.toString(SOH_CHAR),12);
+			if(endOfLength==-1){
+			    if(buf.length()>maxlength){
+			        //too many characters read, but no length field found
+			        ParseException e = new ParseException("End of length field not found within "+(maxlength+12)+" bytes",maxlength+12);
+			        fixFrame.onException(e);
+			        //throw e;
+			    }
+			    //end of length field not found
+			    return charsConsumed;
+			}
+			
+			final String lengthStr = buf.substring(12, endOfLength);
+			
+			final int length = Integer.parseInt(lengthStr);
+			
+			final int totalLength = length+endOfLength+8;
+			
+			if(totalLength>9999){
+			    ParseException e =  new ParseException("Frame length may not be greater than 9999 bytes",0);
+			    fixFrame.onException(e);
+			    //throw e;
+			}
+	
+			if (buf.length() < totalLength) {
+			    return charsConsumed;
+			}
+	
+			// There are enough bytes in the buf. Read it.
+			final String fix = buf.substring(0, totalLength);
+	
+			fixFrame.onMsg(fix);
+			buf = buf.substring(totalLength);
+			charsConsumed += totalLength;
+		}
+		
+		//return the number of characters consumed from buffer
+		return charsConsumed;
+	}
+	
+	//TODO: get rid of this generic exception, be specific!
+	private void processFramDecodedIncoming(String msg) throws Exception  {
 
 
 			//====Step 2: Validate message====
@@ -454,9 +540,8 @@ public class FIXSessionProcessor {
 		incomingCallback.onMsg(msg);
 	}
 
-	private void write(final Map<String, String> msg)
-			throws Exception {
-		final String fixstr = encodeAndCalcChksmCalcBodyLen(msg, headerFields, trailerFields);
+	private void write(final Map<String, String> msg) throws Exception{
+		final String fixstr = encodeAndCalcChksmCalcBodyLen(msg);
 		msgStore.offer(fixstr);
 		outgoingCallback.onMsg(msg);
 		//Channels.write(Channels.future(ctx.getChannel()), fixstr);
@@ -469,7 +554,7 @@ public class FIXSessionProcessor {
 		super.finalize();
 	}
 
-	public static final String checksum(final CharSequence str) {
+	protected static final String checksum(final CharSequence str) {
 		int val = 0;
 		for (int i = 0; i < str.length(); i++) {
 			val += str.charAt(i);
@@ -486,7 +571,7 @@ public class FIXSessionProcessor {
 	}
 
 
-	public static Map<String, String> decode(final String fix) throws ParseException {
+	protected static Map<String, String> decode(final String fix) throws ParseException {
 		final Map<String, String> map = new LinkedHashMap<String, String>();
 		final List<String> attributes = fastSplitAll(fix, SOH_CHAR);
 		int count = 0;
@@ -507,7 +592,7 @@ public class FIXSessionProcessor {
 		return map;
 	}
 
-	public static final String[] fastSplit(final String s, final char delim) {
+	protected static final String[] fastSplit(final String s, final char delim) {
 		final int index = s.indexOf(delim, 0);
 		if (index < 0) {
 			return new String[]{s, ""};
@@ -521,7 +606,7 @@ public class FIXSessionProcessor {
 		return new String[]{left, right};
 	}
 
-	public static final List<String> fastSplitAll(final String s, final char delim) {
+	protected static final List<String> fastSplitAll(final String s, final char delim) {
 		final List<String> l = new ArrayList<String>();
 		int index = -1;
 		int oldindex = 0;
@@ -534,7 +619,7 @@ public class FIXSessionProcessor {
 		return l;
 	}
 
-	public static String encodeAndCalcChksmCalcBodyLen(final Map<String, String> map, final List<FieldAndRequirement> headerFields, final List<FieldAndRequirement> trailerFields) {
+	protected static String encodeAndCalcChksmCalcBodyLen(final Map<String, String> map) {
 		final Map<String, String> headerMap = new LinkedHashMap<String, String>();
 		final Map<String, String> trailerMap = new LinkedHashMap<String, String>();
 
@@ -557,41 +642,11 @@ public class FIXSessionProcessor {
 
 		StringBuilder header = new StringBuilder();
 		header.append("35=").append(msgType).append(SOH_CHAR);//After, tags 8 and 9, tag 35 must be the first header tag
-		for (FieldAndRequirement fields : headerFields) {
-			final String tag = fields.getTag();
-
-			final String val = map.remove(tag);
-			if (val == null && fields.isRequired() && (!tag.equals("8")) && (!tag.equals("9")) && (!tag.equals("35")) && (!tag.equals("10")) && (!tag.equals("52"))) {
-				throw new RuntimeException("Tag [" + tag + "] missing in message " + map);
-			}
-			if (val == null) {
-				continue;
-			}
-
-			headerMap.put(tag, val);
-
-			header.append(tag).append('=').append(val).append(SOH_CHAR);
-		}
-
 		header.append("52=").append(new DateTime().withZone(UTCTimeZone).toString(UTCTimeStampFormat)).append(SOH_CHAR);
 
 
 		StringBuilder trailer = new StringBuilder();
-		for (FieldAndRequirement fields : trailerFields) {
-			final String tag = fields.getTag();
 
-			final String val = map.remove(tag);
-			if (val == null && fields.isRequired() && (!tag.equals("8")) && (!tag.equals("9")) && (!tag.equals("10")) && (!tag.equals("52"))) {
-				throw new RuntimeException("Tag [" + tag + "] missing in message " + map);
-			}
-			if (val == null) {
-				continue;
-			}
-
-			trailerMap.put(tag, val);
-
-			trailer.append(tag).append('=').append(val).append(SOH_CHAR);
-		}
 
 		StringBuilder body = new StringBuilder();
 		for (Entry<String, String> entry : map.entrySet()) {
@@ -616,7 +671,7 @@ public class FIXSessionProcessor {
 		return fix.toString();
 	}
 
-	public static final String checksumToString(int checksum) {
+	protected static final String checksumToString(int checksum) {
 		if (checksum > 0 && checksum < 10) {
 			return "00" + checksum;
 		} else if (checksum >= 10 && checksum < 100) {

@@ -1,9 +1,8 @@
 package com.llfix;
 
-import java.util.Map;
 
-public interface IMessageCallback {
+public interface IMessageCallback<E> {
 
-	public void onMsg(Map<String,String> msg);
+	public void onMsg(E msg);
 	public void onException(Throwable t);
 }
