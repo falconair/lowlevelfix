@@ -5,3 +5,5 @@ target/*
 
 /data
 /target
+/.idea
+*.iml
