@@ -1,6 +1,7 @@
 package com.llfix.api;
 
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -9,21 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelEvent;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandler;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelUpstreamHandler;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-
 import com.google.common.collect.ObjectArrays;
-import com.llfix.FIXInitiatorPipelineFactory;
 import com.llfix.IMessageCallback;
 import com.llfix.IQueueFactory;
 import com.llfix.util.FieldAndRequirement;
@@ -45,25 +32,19 @@ final public class FIXInitiator {
 	private final List<FieldAndRequirement> headerFields;
 	private final List<FieldAndRequirement> trailerFields;
 
-	private final Map<String,Channel> sessions;
+	private final Map<String,Socket> sessions;
 	private final IQueueFactory<String> queueFactory;
 	
 	private final List<IMessageCallback> listeners = new ArrayList<IMessageCallback>();
 	private final IMessageCallback outgoingCallback;
-
-	private final ChannelHandler[] channelHandlers;
-
-	private Channel channel;
-
 	
 	private FIXInitiator(String version, String senderCompID, String targetCompID, 
 			String remoteAddress, int remotePort, int heartBeat, boolean isDebugOn,
 			List<FieldAndRequirement> headerFields,
 			List<FieldAndRequirement> trailerFields,
-			Map<String,Channel> sessions,
+			Map<String,Socket> sessions,
 			IQueueFactory<String> queueFactory, 
-			IMessageCallback outgoingCallback,
-			ChannelHandler[] channelHandlers) {
+			IMessageCallback outgoingCallback) {
 		super();
 		this.version = version;
 		this.senderCompID = senderCompID;
@@ -77,7 +58,6 @@ final public class FIXInitiator {
 		this.sessions = sessions;
 		this.queueFactory = queueFactory;
 		this.outgoingCallback = outgoingCallback;
-		this.channelHandlers = channelHandlers;
 	}
 	
 	public void logOn(final Map<String,String> logon){
@@ -248,7 +228,7 @@ final public class FIXInitiator {
 		private List<FieldAndRequirement> headerFields = new ArrayList<FieldAndRequirement>();
 		private List<FieldAndRequirement> trailerFields = new ArrayList<FieldAndRequirement>();
 		
-		private Map<String,Channel> sessions = new ConcurrentHashMap<String, Channel>();
+		private Map<String,Socket> sessions = new ConcurrentHashMap<String, Socket>();
 		private IQueueFactory<String> queueFactory = new MemoryQueueFactory<String>();
 		
 		private ChannelHandler[] channelHandlers = new ChannelHandler[0];
@@ -268,7 +248,7 @@ final public class FIXInitiator {
 			return this;
 		}
 		
-		public Builder withSessionStoreFactory(Map<String,Channel> sessions){
+		public Builder withSessionStoreFactory(Map<String,Socket> sessions){
 			this.sessions = sessions;
 			return this;
 		}

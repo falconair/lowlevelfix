@@ -1,5 +1,5 @@
 package com.llfix.api;
-
+                  /*
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -30,10 +30,10 @@ import com.llfix.IQueueFactory;
 import com.llfix.handlers.FIXSessionProcessor;
 import com.llfix.util.DefaultLogonManager;
 import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.MemoryQueueFactory;
+import com.llfix.util.MemoryQueueFactory;      */
 
 final public class FIXAcceptor {
-	
+	 /*
 	final static Logger logger = LoggerFactory.getLogger(FIXSessionProcessor.class);
 
 	private final int remotePort;
@@ -240,5 +240,5 @@ final public class FIXAcceptor {
 		}
 		
 		
-	}
+	}     */
 }

@@ -67,11 +67,9 @@ public class FIXSessionProcessorTests {
 				out.println(msg);
 			}
 			
-			@Override
-			public void onException(Throwable t) {
+			@Override public void onException(Throwable t) {
 				t.printStackTrace();
 				assertFalse(t.getMessage(), true);
-				
 			}
 		});
 		
@@ -89,28 +87,15 @@ public class FIXSessionProcessorTests {
 
 		IMessageCallback<Map<String, String>> outgoingCallback = new IMessageCallback<Map<String, String>>() {
 			
-			@Override
-			public void onMsg(Map<String, String> msg) {
-				out.println("Outgoing: "+msg);
-			}
-			
-			@Override
-			public void onException(Throwable t) {
-				out.println("Outgoing: "+t);
-			}
+			@Override public void onMsg(Map<String, String> msg) { out.println("Outgoing: "+msg); }
+			@Override public void onException(Throwable t) { out.println("Exception Outgoing: "+t); }
 		};
 		
 		IMessageCallback<Map<String, String>> incomingCallback = new IMessageCallback<Map<String, String>>() {
 			
-			@Override
-			public void onMsg(Map<String, String> msg) {				
-				out.println("Incoming: "+msg);
-			}
+			@Override public void onMsg(Map<String, String> msg) { out.println("Incoming: "+msg); }
 			
-			@Override
-			public void onException(Throwable t) {
-				out.println("Incoming: "+t);
-			}
+			@Override public void onException(Throwable t) { out.println("Exception Incoming: "+t); }
 		};
 
 		FIXSessionProcessor fix = new FIXSessionProcessor(isInitiator, logonManager, sessions, qFactory, outgoingCallback, incomingCallback, remoteAddress);
@@ -132,7 +117,9 @@ public class FIXSessionProcessorTests {
 		String fixstr15 ="5=F34=749=BANZAI52=20121105-23:25:2556=EXEC11=135215792530938=1000041=135215791235754=155=SPY10=1978=FIX.4.19=8235=3" ;
 		String fixstr16 ="34=949=EXEC52=20121105-23:25:2556=BANZAI45=758=Unsupported message type10=002";
 		
-		fix.processIncoming(fixstr1);
+		fix.processIncoming(fixstr1+fixstr2);
+		
+		//assert that two messages were decoded, confirm that callbacks were correct, etc.
 	}
 
 }

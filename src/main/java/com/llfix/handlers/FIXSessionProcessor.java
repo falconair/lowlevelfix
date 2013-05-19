@@ -1,8 +1,6 @@
 package com.llfix.handlers;
 
 import java.net.InetAddress;
-import java.net.SocketAddress;
-import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.llfix.*;
-import com.llfix.util.FieldAndRequirement;
 
 public class FIXSessionProcessor {
 
@@ -29,7 +26,7 @@ public class FIXSessionProcessor {
 	private final static char SOH_CHAR = '\001';
 	private final static DateTimeFormatter UTCTimeStampFormat = DateTimeFormat.forPattern("yyyyMMdd-HH:mm:ss.SSS");
 	private final static DateTimeZone UTCTimeZone = DateTimeZone.forOffsetHours(0);
-    private final static int maxlength = 5;
+    private final static int MAX_LENGTH = 5;
 
 	
 	private final StringBuilder buffer = new  StringBuilder();
@@ -79,7 +76,7 @@ public class FIXSessionProcessor {
 			
 			@Override
 			public void onMsg(String msg) {
-				try { processFramDecodedIncoming(msg); } 
+				try { processFrameDecodedIncoming(msg); } 
 				catch (Exception e) { onException(e); }
 			}
 			
@@ -139,12 +136,8 @@ public class FIXSessionProcessor {
 		//====Step 1: Frame decode message====
 		buffer.append(msg);
 		
-		while(buffer.length() > 0){
-			int bufferConsumedSoFar = frameDecodeFIXMsg(buffer.toString(), frameDecoderToMsgProcessor);
-			buffer.delete(0, bufferConsumedSoFar);
-			
-		}
-
+		int bufferConsumedSoFar = frameDecodeFIXMsg(buffer.toString(), frameDecoderToMsgProcessor);
+		buffer.delete(0, bufferConsumedSoFar);
 	}
 
 	/**
@@ -156,7 +149,7 @@ public class FIXSessionProcessor {
 	 * @throws ParseException
 	 * @throws Exception
 	 */
-	protected static int frameDecodeFIXMsg(String fixstring, IMessageCallback<String> fixFrame) throws ParseException, Exception {
+	protected static int frameDecodeFIXMsg(String fixstring, IMessageCallback<String> fixFrame)  {
 		int charsConsumed = 0;
 		String buf = fixstring;
 		
@@ -166,9 +159,9 @@ public class FIXSessionProcessor {
 			
 			final int endOfLength = buf.indexOf(Character.toString(SOH_CHAR),12);
 			if(endOfLength==-1){
-			    if(buf.length()>maxlength){
+			    if(buf.length()> MAX_LENGTH){
 			        //too many characters read, but no length field found
-			        ParseException e = new ParseException("End of length field not found within "+(maxlength+12)+" bytes",maxlength+12);
+			        ParseException e = new ParseException("End of length field not found within "+(MAX_LENGTH +12)+" bytes", MAX_LENGTH +12);
 			        fixFrame.onException(e);
 			        //throw e;
 			    }
@@ -205,7 +198,7 @@ public class FIXSessionProcessor {
 	}
 	
 	//TODO: get rid of this generic exception, be specific!
-	private void processFramDecodedIncoming(String msg) throws Exception  {
+	private void processFrameDecodedIncoming(String msg) throws Exception  {
 
 
 			//====Step 2: Validate message====
@@ -300,7 +293,7 @@ public class FIXSessionProcessor {
 
 				loggedIn = true;
 
-				if(!isInitiator) msgStore = qFactory.getQueue(senderCompID+"-"+targetCompID);
+				/*if(!isInitiator)*/ msgStore = qFactory.getQueue(senderCompID+"-"+targetCompID);
 
 				for(String oldMsgStr : msgStore){
 					final Map<String,String> oldMsg = decode(oldMsgStr);
@@ -372,7 +365,7 @@ public class FIXSessionProcessor {
 			if (msgSeqNum == incomingSeqNum) {
 				incomingSeqNum++;
 				resendRequested = false;
-			} else if (msgSeqNum < incomingSeqNum) {
+			} else if (msgSeqNum > incomingSeqNum) {
 				final String posDupStr = fix.get("43");
 				final boolean isPosDup = posDupStr==null? false : posDupStr.equals("Y") ? true : false;
 
@@ -380,11 +373,13 @@ public class FIXSessionProcessor {
 					logger.info(String.format("%s->%s: This posdup message's seqno has already been processed.  Application must handle: %s",senderCompID,targetCompID, fix));
 					return; //TODO: how should posdups be handled?
 				} else {
-					logger.warn(String.format("%s->%s: Incoming sequence number lower than expected. No way to recover message: %s",senderCompID,targetCompID, fix));
+					String errorMsg = String.format("%s->%s: Incoming sequence number, %s, lower than expected, %s. No way to recover message: %s",senderCompID,targetCompID, incomingSeqNum, msgSeqNum, fix);
+					logger.warn(errorMsg);
 					closeSession();
-					return;
+					throw new Exception(errorMsg);
+					//return;
 				}
-			} else if (msgSeqNum > incomingSeqNum) {
+			} else if (msgSeqNum < incomingSeqNum) {
 				//Missing messages, write resend request and don't process any more messages
 				//until the resend request is processed
 				//set flag signifying "waiting for resend"
@@ -554,6 +549,10 @@ public class FIXSessionProcessor {
 		super.finalize();
 	}
 
+	/****************************************************
+	 ** Utility methods
+	 ****************************************************/
+	
 	protected static final String checksum(final CharSequence str) {
 		int val = 0;
 		for (int i = 0; i < str.length(); i++) {
@@ -569,7 +568,6 @@ public class FIXSessionProcessor {
 			return Integer.toString(checksum);
 		}
 	}
-
 
 	protected static Map<String, String> decode(final String fix) throws ParseException {
 		final Map<String, String> map = new LinkedHashMap<String, String>();
@@ -620,8 +618,6 @@ public class FIXSessionProcessor {
 	}
 
 	protected static String encodeAndCalcChksmCalcBodyLen(final Map<String, String> map) {
-		final Map<String, String> headerMap = new LinkedHashMap<String, String>();
-		final Map<String, String> trailerMap = new LinkedHashMap<String, String>();
 
 		map.remove("9");//Remove body length tag
 		map.remove("10");//Remove checksum tag
