@@ -1,10 +1,10 @@
-package com.llfix.util;
+package com.targetcompid.util;
 
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import com.llfix.ISimpleQueue;
+import com.targetcompid.ISimpleQueue;
 
 public final class MemoryQueue<E> implements ISimpleQueue<E> {
 

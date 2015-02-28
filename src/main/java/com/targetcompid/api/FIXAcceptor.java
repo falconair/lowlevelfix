@@ -1,4 +1,4 @@
-package com.llfix.api;
+package com.targetcompid.api;
                   /*
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -24,13 +24,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ObjectArrays;
 import com.llfix.FIXAcceptorPipelineFactory;
-import com.llfix.ILogonManager;
-import com.llfix.IMessageCallback;
-import com.llfix.IQueueFactory;
-import com.llfix.handlers.FIXSessionProcessor;
-import com.llfix.util.DefaultLogonManager;
-import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.MemoryQueueFactory;      */
+import ILogonManager;
+import IMessageCallback;
+import IQueueFactory;
+import FIXSessionProcessor;
+import DefaultLogonManager;
+import FieldAndRequirement;
+import MemoryQueueFactory;
 
 final public class FIXAcceptor {
 	 /*
@@ -240,5 +240,6 @@ final public class FIXAcceptor {
 		}
 		
 		
-	}     */
+	}
 }
+        */

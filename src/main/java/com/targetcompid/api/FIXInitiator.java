@@ -1,5 +1,5 @@
-package com.llfix.api;
-
+package com.targetcompid.api;
+/*
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -11,10 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 import com.google.common.collect.ObjectArrays;
-import com.llfix.IMessageCallback;
-import com.llfix.IQueueFactory;
-import com.llfix.util.FieldAndRequirement;
-import com.llfix.util.MemoryQueueFactory;
+import IMessageCallback;
+import IQueueFactory;
+import FieldAndRequirement;
+import MemoryQueueFactory;
 
 final public class FIXInitiator {
 
@@ -299,3 +299,4 @@ final public class FIXInitiator {
 		
 	}
 }
+*/

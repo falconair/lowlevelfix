@@ -1,4 +1,4 @@
-package com.llfix.util;
+package com.targetcompid.util;
 
 final public class FieldAndRequirement {
 

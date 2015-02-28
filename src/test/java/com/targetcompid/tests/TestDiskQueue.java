@@ -1,9 +1,9 @@
-package com.llfix.tests;
+package com.targetcompid.tests;
 
 import org.junit.Test;
 import static java.lang.System.out;
 
-import com.llfix.util.DiskQueue;
+import com.targetcompid.util.DiskQueue;
 
 public class TestDiskQueue {
 

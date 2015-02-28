@@ -1,4 +1,4 @@
-package com.llfix;
+package com.targetcompid;
 
 
 public interface ISimpleQueue<E> extends Iterable<E>{

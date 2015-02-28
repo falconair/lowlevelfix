@@ -1,6 +1,11 @@
-package com.llfix.handlers;
+package com.targetcompid.handlers;
 
-import static java.lang.System.out;
+import com.targetcompid.ILogonManager;
+import com.targetcompid.IMessageCallback;
+import com.targetcompid.IQueueFactory;
+import com.targetcompid.util.DefaultLogonManager;
+import com.targetcompid.util.MemoryQueueFactory;
+import org.junit.Test;
 
 import java.net.InetAddress;
 import java.text.ParseException;
@@ -10,16 +15,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static junit.framework.Assert.*;
-
-import org.junit.Test;
-
-import com.llfix.ILogonManager;
-import com.llfix.IMessageCallback;
-import com.llfix.IQueueFactory;
-import com.llfix.handlers.FIXSessionProcessor;
-import com.llfix.util.DefaultLogonManager;
-import com.llfix.util.MemoryQueueFactory;
+import static java.lang.System.out;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
 
 public class FIXSessionProcessorTests {
 	

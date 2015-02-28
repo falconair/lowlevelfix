@@ -1,4 +1,4 @@
-package com.llfix.util;
+package com.targetcompid.util;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -12,11 +12,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.targetcompid.ISimpleQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.llfix.ISimpleQueue;
-import com.llfix.handlers.FIXSessionProcessor;
 
 public class DiskQueue implements ISimpleQueue<String> {
 	

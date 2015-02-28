@@ -1,16 +1,9 @@
-package com.llfix.handlers;
+package com.targetcompid.handlers;
 
-import java.net.InetAddress;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import com.targetcompid.ILogonManager;
+import com.targetcompid.IMessageCallback;
+import com.targetcompid.IQueueFactory;
+import com.targetcompid.ISimpleQueue;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -18,7 +11,11 @@ import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.llfix.*;
+import java.net.InetAddress;
+import java.text.ParseException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FIXSessionProcessor {
 
@@ -143,7 +140,7 @@ public class FIXSessionProcessor {
 	/**
 	 * This method is separated out so FIX frame decode logic can be tested is isolation.
 	 * Warning, this method may return null if message can not be parsed
-	 * @param buf
+	 * @param fixstring
 	 * @param fixFrame 
 	 * @return
 	 * @throws ParseException

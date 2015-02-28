@@ -1,10 +1,10 @@
-package com.llfix.util;
+package com.targetcompid.util;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.llfix.IQueueFactory;
-import com.llfix.ISimpleQueue;
+import com.targetcompid.IQueueFactory;
+import com.targetcompid.ISimpleQueue;
 
 
 public class MemoryQueueFactory<T> implements IQueueFactory<T> {

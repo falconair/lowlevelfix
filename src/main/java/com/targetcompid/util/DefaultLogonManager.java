@@ -1,13 +1,12 @@
-package com.llfix.util;
+package com.targetcompid.util;
 
 import java.net.InetAddress;
-import java.net.SocketAddress;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.llfix.ILogonManager;
+import com.targetcompid.ILogonManager;
 
 public class DefaultLogonManager implements ILogonManager {
 	
